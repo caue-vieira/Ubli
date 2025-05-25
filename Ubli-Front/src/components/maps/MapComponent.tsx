@@ -155,7 +155,7 @@ export default function MapComponent() {
         />
         <button
           onClick={handleSearch}
-          className="ml-2 text-blue-700 hover:text-blue-900 font-semibold"
+          className="ml-2 text-blue-700 hover:text-white font-semibold"
         >
           Buscar
         </button>

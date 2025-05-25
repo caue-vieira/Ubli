@@ -36,7 +36,7 @@ export function NavMain({
   }[];
 }) {
   return (
-    <SidebarGroup className="bg-blue-900 text-amber-50">
+    <SidebarGroup className="bg-white text-black">
       <SidebarMenu>
         {items.map((item) => (
           <Collapsible
