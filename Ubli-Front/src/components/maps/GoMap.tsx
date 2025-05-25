@@ -52,6 +52,7 @@ function GoMap() {
       };
       setMapCenter(latLng);
       map?.panTo(latLng);
+      map?.setZoom(18); // <-- Zoom mais próximo ao buscar
     }
   };
 
@@ -78,6 +79,7 @@ function GoMap() {
         };
         setMapCenter(latLng);
         map.panTo(latLng);
+        map.setZoom(18); // <-- Zoom mais próximo ao buscar manualmente
       }
     });
   };
@@ -85,7 +87,7 @@ function GoMap() {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      handleManualSearch(); // aciona busca manual ao pressionar enter
+      handleManualSearch();
     }
   };
 
