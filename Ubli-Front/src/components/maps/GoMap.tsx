@@ -1,8 +1,9 @@
-import React, { useRef, useState, useCallback } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import {
   GoogleMap,
   useJsApiLoader,
   Autocomplete,
+  Marker,
 } from "@react-google-maps/api";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 
@@ -20,6 +21,8 @@ function GoMap() {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapCenter, setMapCenter] = useState(center);
+  const [userLocation, setUserLocation] =
+    useState<google.maps.LatLngLiteral | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
@@ -86,6 +89,26 @@ function GoMap() {
     }
   };
 
+  // Localização do usuário
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const coords = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(coords);
+          setMapCenter(coords);
+          map?.panTo(coords);
+        },
+        (error) => {
+          console.error("Erro ao obter localização do usuário:", error);
+        }
+      );
+    }
+  }, [map]);
+
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -114,6 +137,17 @@ function GoMap() {
       <div className="absolute top-20 left-4 z-[3]">
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
+
+      {/* Marcador de localização do usuário */}
+      {userLocation && (
+        <Marker
+          position={userLocation}
+          icon={{
+            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          }}
+          title="Sua localização"
+        />
+      )}
     </GoogleMap>
   ) : (
     <></>
