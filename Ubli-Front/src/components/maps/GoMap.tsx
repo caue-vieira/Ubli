@@ -4,8 +4,10 @@ import {
   useJsApiLoader,
   Autocomplete,
   Marker,
+  InfoWindow,
 } from "@react-google-maps/api";
 import { SidebarTrigger } from "@/components/ui/sidebar";
+import SidebarForm from "@/components/SidebarForm.tsx";
 
 const center = {
   lat: -3.745,
@@ -17,20 +19,68 @@ function GoMap() {
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyCh0P28cr395a0_mzOCw9ZO3BsHhO22dCY",
     libraries: ["places"],
+    language: "pt-BR", // idioma português
+    region: "BR", // região Brasil
   });
 
+  // estados
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapCenter, setMapCenter] = useState(center);
-  const [userLocation, setUserLocation] =
-    useState<google.maps.LatLngLiteral | null>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedPlace, setSelectedPlace] =
+    useState<google.maps.LatLngLiteral | null>(null);
+  const [showSidebar, setShowSidebar] = useState(false);
+  const [userLocation, setUserLocation] =
+    useState<google.maps.LatLngLiteral | null>(null);
 
+  // Novo estado para lugares próximos
+  const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
+
+  // Sua função onLoad original com pequena adição
   const onLoad = useCallback((map: google.maps.Map) => {
     const bounds = new window.google.maps.LatLngBounds(center);
     map.fitBounds(bounds);
     setMap(map);
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const location = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          setUserLocation(location);
+          setMapCenter(location);
+          map.panTo(location);
+          map.setZoom(17);
+          loadNearbyPlaces(location);
+        },
+        () => {
+          console.error("Erro ao obter localização do usuário.");
+        }
+      );
+    }
   }, []);
+
+  // função para carregar lugares próximos
+  const loadNearbyPlaces = (location: google.maps.LatLngLiteral) => {
+    if (!map) return;
+
+    const service = new google.maps.places.PlacesService(map);
+    service.nearbySearch(
+      {
+        location: new google.maps.LatLng(location.lat, location.lng),
+        radius: 500,
+        type: ["store", "restaurant", "hospital"],
+      },
+      (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+          setNearbyPlaces(results);
+        }
+      }
+    );
+  };
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -52,7 +102,9 @@ function GoMap() {
       };
       setMapCenter(latLng);
       map?.panTo(latLng);
-      map?.setZoom(18); // <-- Zoom mais próximo ao buscar
+      map?.setZoom(18);
+      setSelectedPlace(latLng);
+      loadNearbyPlaces(latLng); // Atualiza lugares ao buscar novo local
     }
   };
 
@@ -79,7 +131,9 @@ function GoMap() {
         };
         setMapCenter(latLng);
         map.panTo(latLng);
-        map.setZoom(18); // <-- Zoom mais próximo ao buscar manualmente
+        map.setZoom(18);
+        setSelectedPlace(latLng);
+        loadNearbyPlaces(latLng); // Atualiza lugares ao buscar manualmente
       }
     });
   };
@@ -91,26 +145,6 @@ function GoMap() {
     }
   };
 
-  // Localização do usuário
-  useEffect(() => {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const coords = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserLocation(coords);
-          setMapCenter(coords);
-          map?.panTo(coords);
-        },
-        (error) => {
-          console.error("Erro ao obter localização do usuário:", error);
-        }
-      );
-    }
-  }, [map]);
-
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -119,7 +153,7 @@ function GoMap() {
       onLoad={onLoad}
       onUnmount={onUnmount}
     >
-      {/* Campo de busca */}
+      {/* conteúdo */}
       <div className="absolute top-4 right-20 z-[1000] w-80">
         <Autocomplete
           onLoad={onAutocompleteLoad}
@@ -135,20 +169,56 @@ function GoMap() {
         </Autocomplete>
       </div>
 
-      {/* Botão abre/fecha menu lateral */}
       <div className="absolute top-20 left-4 z-[3]">
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
 
-      {/* Marcador de localização do usuário */}
-      {userLocation && (
+      {/* Marcador do usuário */}
+      {userLocation && <Marker position={userLocation} />}
+
+      {/* Marcadores de lugares próximos adicionados */}
+      {nearbyPlaces.map((place) => (
         <Marker
-          position={userLocation}
-          icon={{
-            url: "http://maps.google.com/mapfiles/ms/icons/blue-dot.png",
+          key={place.place_id}
+          position={{
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng(),
           }}
-          title="Sua localização"
+          onClick={() => {
+            setSelectedPlace({
+              lat: place.geometry.location.lat(),
+              lng: place.geometry.location.lng(),
+            });
+          }}
         />
+      ))}
+
+      {/*InfoWindow*/}
+      {selectedPlace && (
+        <InfoWindow
+          position={selectedPlace}
+          onCloseClick={() => setSelectedPlace(null)}
+        >
+          <div className="flex items-center space-x-2">
+            <p>Deseja cadastrar acessibilidade aqui?</p>
+            <button
+              onClick={() => setShowSidebar(true)}
+              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+            >
+              <span className="material-icons">add</span>
+            </button>
+          </div>
+        </InfoWindow>
+      )}
+
+      {/* Sidebar */}
+      {showSidebar && (
+        <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
+          <SidebarForm
+            onClose={() => setShowSidebar(false)}
+            selectedLocation={selectedPlace}
+          />
+        </div>
       )}
     </GoogleMap>
   ) : (
