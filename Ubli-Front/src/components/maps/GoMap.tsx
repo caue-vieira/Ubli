@@ -8,6 +8,7 @@ import {
 } from "@react-google-maps/api";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import SidebarForm from "@/components/SidebarForm.tsx";
+import addButtonIcon from "@/images/add-button.png";
 
 const center = {
   lat: -3.745,
@@ -19,8 +20,8 @@ function GoMap() {
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyCh0P28cr395a0_mzOCw9ZO3BsHhO22dCY",
     libraries: ["places"],
-    language: "pt-BR", // idioma português
-    region: "BR", // região Brasil
+    language: "pt-BR",
+    region: "BR",
   });
 
   // estados
@@ -33,11 +34,13 @@ function GoMap() {
   const [showSidebar, setShowSidebar] = useState(false);
   const [userLocation, setUserLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
-
-  // Novo estado para lugares próximos
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
 
-  // Sua função onLoad original com pequena adição
+  // Novos estados para o botão de adicionar
+  const [showAddOptions, setShowAddOptions] = useState(false);
+  const [showAddressSearch, setShowAddressSearch] = useState(false);
+  const addressSearchInputRef = useRef<HTMLInputElement | null>(null);
+
   const onLoad = useCallback((map: google.maps.Map) => {
     const bounds = new window.google.maps.LatLngBounds(center);
     map.fitBounds(bounds);
@@ -63,7 +66,6 @@ function GoMap() {
     }
   }, []);
 
-  // função para carregar lugares próximos
   const loadNearbyPlaces = (location: google.maps.LatLngLiteral) => {
     if (!map) return;
 
@@ -104,7 +106,7 @@ function GoMap() {
       map?.panTo(latLng);
       map?.setZoom(18);
       setSelectedPlace(latLng);
-      loadNearbyPlaces(latLng); // Atualiza lugares ao buscar novo local
+      loadNearbyPlaces(latLng);
     }
   };
 
@@ -133,7 +135,7 @@ function GoMap() {
         map.panTo(latLng);
         map.setZoom(18);
         setSelectedPlace(latLng);
-        loadNearbyPlaces(latLng); // Atualiza lugares ao buscar manualmente
+        loadNearbyPlaces(latLng);
       }
     });
   };
@@ -145,6 +147,37 @@ function GoMap() {
     }
   };
 
+  // Novas funções para o botão de adicionar
+  const handleAddWithCurrentLocation = () => {
+    if (userLocation) {
+      setSelectedPlace(userLocation);
+      setShowSidebar(true);
+      setShowAddOptions(false);
+    }
+  };
+
+  const handleAddressSearch = () => {
+    if (!addressSearchInputRef.current?.value || !map) return;
+
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode(
+      { address: addressSearchInputRef.current.value },
+      (results, status) => {
+        if (status === "OK" && results?.[0]?.geometry?.location) {
+          const location = results[0].geometry.location;
+          const latLng = {
+            lat: location.lat(),
+            lng: location.lng(),
+          };
+          setSelectedPlace(latLng);
+          setShowSidebar(true);
+          setShowAddOptions(false);
+          setShowAddressSearch(false);
+        }
+      }
+    );
+  };
+
   return isLoaded ? (
     <GoogleMap
       mapContainerStyle={{ width: "100%", height: "100%" }}
@@ -153,7 +186,72 @@ function GoMap() {
       onLoad={onLoad}
       onUnmount={onUnmount}
     >
-      {/* conteúdo */}
+      {/* Botão flutuante para adicionar novo local */}
+      <div className="absolute bottom-5 right-20 z-[1000]">
+        <button
+          onClick={() => setShowAddOptions(!showAddOptions)}
+          className="p-1 w-15 h-15 bg-white text-black rounded-full shadow-lg hover:bg-gray-200 transition flex items-center justify-center"
+        >
+          <span className="material-icons text-2x1">
+            <img className="" src={addButtonIcon} alt="Adicionar" />
+          </span>
+        </button>
+      </div>
+
+      {/* Popup de opções para adicionar */}
+      {showAddOptions && (
+        <div className="absolute bottom-20 right-6 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
+          {!showAddressSearch ? (
+            <>
+              <h3 className="font-semibold mb-3 text-gray-800">
+                Adicionar acessibilidade
+              </h3>
+              <button
+                onClick={handleAddWithCurrentLocation}
+                className="w-full mb-2 p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center text-sm"
+                disabled={!userLocation}
+              >
+                <span className="material-icons mr-2 text-base">
+                  Localização atual
+                </span>
+              </button>
+              <button
+                onClick={() => setShowAddressSearch(true)}
+                className="w-full p-2 bg-gray-50 text-gray-700 rounded hover:bg-gray-100 flex items-center text-sm"
+              >
+                <span className="material-icons mr-2 text-base">
+                  Buscar por endereço
+                </span>
+              </button>
+            </>
+          ) : (
+            <div className="space-y-3">
+              <h3 className="font-semibold text-gray-800">Buscar endereço</h3>
+              <input
+                ref={addressSearchInputRef}
+                type="text"
+                placeholder="Digite o endereço completo"
+                className="w-full p-2 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex space-x-2">
+                <button
+                  onClick={handleAddressSearch}
+                  className="flex-1 p-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                >
+                  Buscar
+                </button>
+                <button
+                  onClick={() => setShowAddressSearch(false)}
+                  className="p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+                >
+                  Voltar
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="absolute top-4 right-20 z-[1000] w-80">
         <Autocomplete
           onLoad={onAutocompleteLoad}
@@ -173,10 +271,20 @@ function GoMap() {
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
 
-      {/* Marcador do usuário */}
-      {userLocation && <Marker position={userLocation} />}
+      {userLocation && (
+        <Marker
+          position={userLocation}
+          icon={{
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 8,
+            fillColor: "#4285F4",
+            fillOpacity: 1,
+            strokeWeight: 2,
+            strokeColor: "white",
+          }}
+        />
+      )}
 
-      {/* Marcadores de lugares próximos adicionados */}
       {nearbyPlaces.map((place) => (
         <Marker
           key={place.place_id}
@@ -193,7 +301,6 @@ function GoMap() {
         />
       ))}
 
-      {/*InfoWindow*/}
       {selectedPlace && (
         <InfoWindow
           position={selectedPlace}
@@ -211,7 +318,6 @@ function GoMap() {
         </InfoWindow>
       )}
 
-      {/* Sidebar */}
       {showSidebar && (
         <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
           <SidebarForm
