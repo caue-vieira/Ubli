@@ -24,7 +24,6 @@ function GoMap() {
     region: "BR",
   });
 
-  // estados
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapCenter, setMapCenter] = useState(center);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
@@ -35,10 +34,11 @@ function GoMap() {
   const [userLocation, setUserLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
-
-  // Novos estados para o botão de adicionar
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
+  const addressAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(
+    null
+  );
   const addressSearchInputRef = useRef<HTMLInputElement | null>(null);
 
   const onLoad = useCallback((map: google.maps.Map) => {
@@ -147,7 +147,6 @@ function GoMap() {
     }
   };
 
-  // Novas funções para o botão de adicionar
   const handleAddWithCurrentLocation = () => {
     if (userLocation) {
       setSelectedPlace(userLocation);
@@ -156,26 +155,54 @@ function GoMap() {
     }
   };
 
-  const handleAddressSearch = () => {
-    if (!addressSearchInputRef.current?.value || !map) return;
+  const onAddressAutocompleteLoad = (
+    autocomplete: google.maps.places.Autocomplete
+  ) => {
+    addressAutocompleteRef.current = autocomplete;
+  };
 
-    const geocoder = new google.maps.Geocoder();
-    geocoder.geocode(
-      { address: addressSearchInputRef.current.value },
-      (results, status) => {
-        if (status === "OK" && results?.[0]?.geometry?.location) {
-          const location = results[0].geometry.location;
-          const latLng = {
-            lat: location.lat(),
-            lng: location.lng(),
-          };
-          setSelectedPlace(latLng);
-          setShowSidebar(true);
-          setShowAddOptions(false);
-          setShowAddressSearch(false);
+  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      handleAddressSelect();
+    }
+  };
+
+  const handleAddressSelect = () => {
+    const place = addressAutocompleteRef.current?.getPlace();
+    if (place?.geometry?.location) {
+      const location = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
+      };
+      setSelectedPlace(location);
+      setShowSidebar(true);
+      setShowAddOptions(false);
+      setShowAddressSearch(false);
+      setMapCenter(location);
+      map?.panTo(location);
+      map?.setZoom(17);
+    } else if (addressSearchInputRef.current?.value) {
+      const geocoder = new google.maps.Geocoder();
+      geocoder.geocode(
+        { address: addressSearchInputRef.current.value },
+        (results, status) => {
+          if (status === "OK" && results?.[0]?.geometry?.location) {
+            const location = results[0].geometry.location;
+            const latLng = {
+              lat: location.lat(),
+              lng: location.lng(),
+            };
+            setSelectedPlace(latLng);
+            setShowSidebar(true);
+            setShowAddOptions(false);
+            setShowAddressSearch(false);
+            setMapCenter(latLng);
+            map?.panTo(latLng);
+            map?.setZoom(17);
+          }
         }
-      }
-    );
+      );
+    }
   };
 
   return isLoaded ? (
@@ -186,7 +213,6 @@ function GoMap() {
       onLoad={onLoad}
       onUnmount={onUnmount}
     >
-      {/* Botão flutuante para adicionar novo local */}
       <div className="absolute bottom-5 right-20 z-[1000]">
         <button
           onClick={() => setShowAddOptions(!showAddOptions)}
@@ -198,7 +224,6 @@ function GoMap() {
         </button>
       </div>
 
-      {/* Popup de opções para adicionar */}
       {showAddOptions && (
         <div className="absolute bottom-20 right-6 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
           {!showAddressSearch ? (
@@ -227,26 +252,34 @@ function GoMap() {
           ) : (
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-800">Buscar endereço</h3>
-              <input
-                ref={addressSearchInputRef}
-                type="text"
-                placeholder="Digite o endereço completo"
-                className="w-full p-2 border border-gray-300 rounded text-sm"
-              />
-              <div className="flex space-x-2">
+              <div className="flex">
+                <Autocomplete
+                  onLoad={onAddressAutocompleteLoad}
+                  onPlaceChanged={handleAddressSelect}
+                  types={["address"]}
+                  fields={["geometry", "formatted_address"]}
+                >
+                  <input
+                    ref={addressSearchInputRef}
+                    type="text"
+                    placeholder="Digite o endereço completo"
+                    className="w-full p-2 border border-gray-300 rounded-l text-sm"
+                    onKeyDown={handleAddressKeyDown}
+                  />
+                </Autocomplete>
                 <button
-                  onClick={handleAddressSearch}
-                  className="flex-1 p-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
+                  onClick={handleAddressSelect}
+                  className="p-2 bg-blue-500 text-white rounded-r hover:bg-blue-600 text-sm"
                 >
                   Buscar
                 </button>
-                <button
-                  onClick={() => setShowAddressSearch(false)}
-                  className="p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-                >
-                  Voltar
-                </button>
               </div>
+              <button
+                onClick={() => setShowAddressSearch(false)}
+                className="w-full p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+              >
+                Voltar
+              </button>
             </div>
           )}
         </div>
