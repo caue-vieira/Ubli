@@ -1,10 +1,16 @@
 services:
   mysql:
-    image: 'mysql:latest'
+    image: 'mysql:8.0'
+    restart: unless-stopped
     environment:
-      - 'MYSQL_DATABASE=mydatabase'
-      - 'MYSQL_PASSWORD=secret'
-      - 'MYSQL_ROOT_PASSWORD=verysecret'
-      - 'MYSQL_USER=myuser'
+      - 'MYSQL_DATABASE=ubli'
+      - 'MYSQL_PASSWORD=ubli_database'
+      - 'MYSQL_ROOT_PASSWORD=ubli_admin'
+      - 'MYSQL_USER=ubli'
     ports:
       - '3306'
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+volumes:
+  mysql_data:
