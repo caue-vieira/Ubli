@@ -1,46 +1,106 @@
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { Tabs, TabsTrigger, TabsList, TabsContent } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
+import logo from "../images/logo-completo.png"
+import { Button } from "@/components/ui/button";
 
-const loginFormSchema = z.object({
+const registerFormSchema = z.object({
   usuario: z.string().min(2),
   senha: z.string(),
   email: z.string().email(),
   cpf: z.string().min(11).max(11),
+});
+
+const loginFormSchema = z.object({
+  email: z.string().email(),
+  senha: z.string(),
 })
+
+function onRegister(values: z.infer<typeof registerFormSchema>) {
+  console.log(values);
+}
 
 function onLogin(values: z.infer<typeof loginFormSchema>) {
   console.log(values);
 }
 
 function Login() {
+  const registerForm = useForm<z.infer<typeof registerFormSchema>>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: {
+      usuario: "",
+      email: "",
+      senha: "",
+      cpf: "",
+    }
+  });
+
   const loginForm = useForm<z.infer<typeof loginFormSchema>>({
-    resolver: zodResolver(loginFormSchema)
+    resolver: zodResolver(loginFormSchema),
+    defaultValues: {
+      email: "",
+      senha: "",
+    }
   })
 
   return (
-    <Tabs defaultValue="login">
-      <TabsList>
+    <Tabs defaultValue="login" className="w-[25%]">
+      <TabsList className="w-full">
         <TabsTrigger value="login">Login</TabsTrigger>
         <TabsTrigger value="cadastro">Cadastre-se</TabsTrigger>
       </TabsList>
       <TabsContent value="login">
         <Card>
-          <CardHeader>Login</CardHeader>
-        </Card>
-      </TabsContent>
-      <TabsContent value="cadastro">
-        <Card>
-          <CardHeader className="px-5">Cadastre-se</CardHeader>
-          <CardContent className="px-5">
+          <CardHeader>
+            <img src={logo} className="w-[50%] mx-auto my-2"/>
+          </CardHeader>
+          <CardContent className="px-8">
             <Form {...loginForm}>
               <form onSubmit={loginForm.handleSubmit(onLogin)} className="flex flex-col gap-2">
                 <FormField
                   control={loginForm.control}
+                  name="email"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={loginForm.control}
+                  name="senha"
+                  render={({field}) => (
+                    <FormItem>
+                      <FormLabel>Senha</FormLabel>
+                      <FormControl>
+                        <Input type="password" placeholder="Senha" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <Button className="hover:cursor-pointer bg-[#4585C3] hover:bg-[#073359]">Entrar</Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      <TabsContent value="cadastro">
+        <Card>
+          <CardHeader>
+            <img src={logo} className="w-[50%] mx-auto my-2"/>
+          </CardHeader>
+          <CardContent className="px-8">
+            <Form {...registerForm}>
+              <form onSubmit={registerForm.handleSubmit(onRegister)} className="flex flex-col gap-2">
+                <FormField
+                  control={registerForm.control}
                   name="usuario"
                   render={({field}) => (
                     <FormItem>
@@ -52,8 +112,8 @@ function Login() {
                   )}
                 />
                 <FormField 
-                  control={loginForm.control}
-                  name="usuario"
+                  control={registerForm.control}
+                  name="email"
                   render={({field}) => (
                     <FormItem>
                       <FormLabel>Email</FormLabel>
@@ -64,7 +124,7 @@ function Login() {
                   )}
                 />
                 <FormField 
-                  control={loginForm.control}
+                  control={registerForm.control}
                   name="cpf"
                   render={({field}) => (
                     <FormItem>
@@ -76,20 +136,26 @@ function Login() {
                   )}
                 />
                 <FormField 
-                  control={loginForm.control}
+                  control={registerForm.control}
                   name="senha"
                   render={({field}) => (
                     <FormItem>
                       <FormLabel>Senha</FormLabel>
                       <FormControl>
-                        <Input placeholder="Senha" {...field} />
+                        <Input type="password" placeholder="Senha" {...field} />
                       </FormControl>
                     </FormItem>
                   )}
                 />
+                <Button className="hover:cursor-pointer bg-[#4585C3] hover:bg-[#073359]">Cadastre-se</Button>
               </form>
             </Form>
           </CardContent>
+          <CardFooter className="text-sm text-zinc-600">
+            <h1 className="mx-auto">Já tem uma conta?
+              <a href="/login"> Cadastre-se</a>
+            </h1>
+          </CardFooter>
         </Card>
       </TabsContent>
     </Tabs>
