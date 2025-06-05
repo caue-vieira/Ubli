@@ -42,14 +42,16 @@ export function TeamSwitcher({
           <div className=" text-sidebar-primary-foreground flex aspect-square items-center h-20 justify-center rounded-lg p-1">
             {" "}
             {/* A imagem agora usa 'currentLogo' e pode ter classes diferentes */}
-            <img
-              className={cn(
-                "transition-all duration-200", // Adiciona uma transição suave
-                state === "expanded" ? "max-w-30" : "max-w-15" // Ajusta o tamanho
-              )}
-              src={currentLogo} // Usa a variável com o logo correto
-              alt={activeTeam.name}
-            />
+            <a href="http://localhost:5173/">
+              <img
+                className={cn(
+                  "transition-all duration-200", // Adiciona uma transição suave
+                  state === "expanded" ? "max-w-30" : "max-w-15" // Ajusta o tamanho
+                )}
+                src={currentLogo} // Usa a variável com o logo correto
+                alt={activeTeam.name}
+              />
+            </a>
           </div>
           {/* renderizado condicionalmente */}
           {state === "expanded" && (

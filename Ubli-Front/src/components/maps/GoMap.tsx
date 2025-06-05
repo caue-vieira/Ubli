@@ -15,6 +15,18 @@ const center = {
   lng: -38.523,
 };
 
+type PlaceLocation = {
+  lat: number;
+  lng: number;
+  placeId?: string;
+};
+
+type PlaceDetails = {
+  name: string;
+  address: string;
+  types?: string[];
+};
+
 function GoMap() {
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -28,61 +40,131 @@ function GoMap() {
   const [mapCenter, setMapCenter] = useState(center);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [selectedPlace, setSelectedPlace] =
-    useState<google.maps.LatLngLiteral | null>(null);
+  const [selectedPlace, setSelectedPlace] = useState<PlaceLocation | null>(
+    null
+  );
+  const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [userLocation, setUserLocation] =
     useState<google.maps.LatLngLiteral | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
-  const addressAutocompleteRef = useRef<google.maps.places.Autocomplete | null>(
-    null
-  );
   const addressSearchInputRef = useRef<HTMLInputElement | null>(null);
 
-  const onLoad = useCallback((map: google.maps.Map) => {
-    const bounds = new window.google.maps.LatLngBounds(center);
-    map.fitBounds(bounds);
-    setMap(map);
+  // Configuração do mapa para mostrar POIs padrão mas controlar os cliques
+  const mapOptions = {
+    clickableIcons: true, // Permite cliques nos ícones
+    styles: [
+      {
+        featureType: "poi",
+        elementType: "labels",
+        stylers: [{ visibility: "on" }],
+      },
+      {
+        featureType: "poi",
+        elementType: "labels.icon",
+        stylers: [{ visibility: "on" }], // Mostra ícones de POIs
+      },
+    ],
+  };
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setUserLocation(location);
-          setMapCenter(location);
-          map.panTo(location);
-          map.setZoom(17);
-          loadNearbyPlaces(location);
+  const loadNearbyPlaces = useCallback(
+    (location: google.maps.LatLngLiteral) => {
+      if (!map) return;
+
+      const service = new google.maps.places.PlacesService(map);
+      service.nearbySearch(
+        {
+          location: new google.maps.LatLng(location.lat, location.lng),
+          radius: 500,
+          type: ["store", "restaurant", "hospital"],
         },
-        () => {
-          console.error("Erro ao obter localização do usuário.");
+        (results, status) => {
+          if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            setNearbyPlaces(results);
+          }
         }
       );
-    }
-  }, []);
+    },
+    [map]
+  );
 
-  const loadNearbyPlaces = (location: google.maps.LatLngLiteral) => {
-    if (!map) return;
+  const onLoad = useCallback(
+    (map: google.maps.Map) => {
+      const bounds = new window.google.maps.LatLngBounds(center);
+      map.fitBounds(bounds);
+      setMap(map);
 
-    const service = new google.maps.places.PlacesService(map);
-    service.nearbySearch(
-      {
-        location: new google.maps.LatLng(location.lat, location.lng),
-        radius: 500,
-        type: ["store", "restaurant", "hospital"],
-      },
-      (results, status) => {
-        if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-          setNearbyPlaces(results);
+      // Listener para interceptar cliques em POIs
+      const clickListener = map.addListener("click", (event) => {
+        // Se clicou em um POI (placeId existe)
+        if (event.placeId) {
+          event.stop(); // Impede o InfoWindow padrão
+
+          const service = new window.google.maps.places.PlacesService(map);
+          service.getDetails(
+            {
+              placeId: event.placeId,
+              fields: [
+                "name",
+                "formatted_address",
+                "geometry",
+                "types",
+                "vicinity",
+              ],
+            },
+            (place, status) => {
+              if (status === "OK" && place.geometry?.location) {
+                const location = {
+                  lat: place.geometry.location.lat(),
+                  lng: place.geometry.location.lng(),
+                  placeId: event.placeId,
+                };
+                setSelectedPlace(location);
+                setPlaceDetails({
+                  name: place.name || "Local desconhecido",
+                  address:
+                    place.vicinity ||
+                    place.formatted_address ||
+                    "Endereço não disponível",
+                  types: place.types,
+                });
+              }
+            }
+          );
+        } else {
+          // Clicou em área vazia do mapa
+          setSelectedPlace(null);
         }
+      });
+
+      // Obter localização do usuário
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const location = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude,
+            };
+            setUserLocation(location);
+            setMapCenter(location);
+            map.panTo(location);
+            map.setZoom(17);
+            loadNearbyPlaces(location);
+          },
+          () => {
+            console.error("Erro ao obter localização do usuário.");
+          }
+        );
       }
-    );
-  };
+
+      return () => {
+        google.maps.event.removeListener(clickListener);
+      };
+    },
+    [loadNearbyPlaces]
+  );
 
   const onUnmount = useCallback(() => {
     setMap(null);
@@ -97,16 +179,23 @@ function GoMap() {
   const handlePlaceChanged = () => {
     const place = autocompleteRef.current?.getPlace();
     if (place?.geometry?.location) {
-      const location = place.geometry.location;
-      const latLng = {
-        lat: location.lat(),
-        lng: location.lng(),
+      const location = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
       };
-      setMapCenter(latLng);
-      map?.panTo(latLng);
+      setMapCenter(location);
+      map?.panTo(location);
       map?.setZoom(18);
-      setSelectedPlace(latLng);
-      loadNearbyPlaces(latLng);
+      setSelectedPlace({
+        ...location,
+        placeId: place.place_id,
+      });
+      setPlaceDetails({
+        name: place.name || "Local desconhecido",
+        address: place.formatted_address || "Endereço não disponível",
+        types: place.types,
+      });
+      loadNearbyPlaces(location);
     }
   };
 
@@ -117,7 +206,7 @@ function GoMap() {
     const service = new google.maps.places.PlacesService(map);
     const request = {
       query,
-      fields: ["name", "geometry"],
+      fields: ["name", "geometry", "place_id", "formatted_address", "types"],
     };
 
     service.findPlaceFromQuery(request, (results, status) => {
@@ -126,16 +215,24 @@ function GoMap() {
         results &&
         results[0].geometry?.location
       ) {
-        const location = results[0].geometry.location;
-        const latLng = {
-          lat: location.lat(),
-          lng: location.lng(),
+        const place = results[0];
+        const location = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
         };
-        setMapCenter(latLng);
-        map.panTo(latLng);
+        setMapCenter(location);
+        map.panTo(location);
         map.setZoom(18);
-        setSelectedPlace(latLng);
-        loadNearbyPlaces(latLng);
+        setSelectedPlace({
+          ...location,
+          placeId: place.place_id,
+        });
+        setPlaceDetails({
+          name: place.name || "Local desconhecido",
+          address: place.formatted_address || "Endereço não disponível",
+          types: place.types,
+        });
+        loadNearbyPlaces(location);
       }
     });
   };
@@ -150,59 +247,38 @@ function GoMap() {
   const handleAddWithCurrentLocation = () => {
     if (userLocation) {
       setSelectedPlace(userLocation);
+      setPlaceDetails({
+        name: "Minha Localização",
+        address: "Localização atual do usuário",
+      });
       setShowSidebar(true);
       setShowAddOptions(false);
     }
   };
 
-  const onAddressAutocompleteLoad = (
-    autocomplete: google.maps.places.Autocomplete
-  ) => {
-    addressAutocompleteRef.current = autocomplete;
-  };
+  const handleAddressSearch = () => {
+    if (!addressSearchInputRef.current?.value || !map) return;
 
-  const handleAddressKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter") {
-      handleAddressSelect();
-    }
-  };
-
-  const handleAddressSelect = () => {
-    const place = addressAutocompleteRef.current?.getPlace();
-    if (place?.geometry?.location) {
-      const location = {
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
-      };
-      setSelectedPlace(location);
-      setShowSidebar(true);
-      setShowAddOptions(false);
-      setShowAddressSearch(false);
-      setMapCenter(location);
-      map?.panTo(location);
-      map?.setZoom(17);
-    } else if (addressSearchInputRef.current?.value) {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(
-        { address: addressSearchInputRef.current.value },
-        (results, status) => {
-          if (status === "OK" && results?.[0]?.geometry?.location) {
-            const location = results[0].geometry.location;
-            const latLng = {
-              lat: location.lat(),
-              lng: location.lng(),
-            };
-            setSelectedPlace(latLng);
-            setShowSidebar(true);
-            setShowAddOptions(false);
-            setShowAddressSearch(false);
-            setMapCenter(latLng);
-            map?.panTo(latLng);
-            map?.setZoom(17);
-          }
+    const geocoder = new google.maps.Geocoder();
+    geocoder.geocode(
+      { address: addressSearchInputRef.current.value },
+      (results, status) => {
+        if (status === "OK" && results?.[0]?.geometry?.location) {
+          const location = {
+            lat: results[0].geometry.location.lat(),
+            lng: results[0].geometry.location.lng(),
+          };
+          setSelectedPlace(location);
+          setPlaceDetails({
+            name: results[0].formatted_address || "Endereço pesquisado",
+            address: results[0].formatted_address || "Endereço não disponível",
+          });
+          setShowSidebar(true);
+          setShowAddOptions(false);
+          setShowAddressSearch(false);
         }
-      );
-    }
+      }
+    );
   };
 
   return isLoaded ? (
@@ -212,7 +288,9 @@ function GoMap() {
       zoom={15}
       onLoad={onLoad}
       onUnmount={onUnmount}
+      options={mapOptions}
     >
+      {/* Botão flutuante para adicionar novo local */}
       <div className="absolute bottom-5 right-20 z-[1000]">
         <button
           onClick={() => setShowAddOptions(!showAddOptions)}
@@ -224,6 +302,7 @@ function GoMap() {
         </button>
       </div>
 
+      {/* Popup de opções para adicionar */}
       {showAddOptions && (
         <div className="absolute bottom-20 right-6 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
           {!showAddressSearch ? (
@@ -252,39 +331,32 @@ function GoMap() {
           ) : (
             <div className="space-y-3">
               <h3 className="font-semibold text-gray-800">Buscar endereço</h3>
-              <div className="flex">
-                <Autocomplete
-                  onLoad={onAddressAutocompleteLoad}
-                  onPlaceChanged={handleAddressSelect}
-                  types={["address"]}
-                  fields={["geometry", "formatted_address"]}
-                >
-                  <input
-                    ref={addressSearchInputRef}
-                    type="text"
-                    placeholder="Digite o endereço completo"
-                    className="w-full p-2 border border-gray-300 rounded-l text-sm"
-                    onKeyDown={handleAddressKeyDown}
-                  />
-                </Autocomplete>
+              <input
+                ref={addressSearchInputRef}
+                type="text"
+                placeholder="Digite o endereço completo"
+                className="w-full p-2 border border-gray-300 rounded text-sm"
+              />
+              <div className="flex space-x-2">
                 <button
-                  onClick={handleAddressSelect}
-                  className="p-2 bg-blue-500 text-white rounded-r hover:bg-blue-600 text-sm"
+                  onClick={handleAddressSearch}
+                  className="flex-1 p-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                 >
                   Buscar
                 </button>
+                <button
+                  onClick={() => setShowAddressSearch(false)}
+                  className="p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
+                >
+                  Voltar
+                </button>
               </div>
-              <button
-                onClick={() => setShowAddressSearch(false)}
-                className="w-full p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
-              >
-                Voltar
-              </button>
             </div>
           )}
         </div>
       )}
 
+      {/* Barra de busca */}
       <div className="absolute top-4 right-20 z-[1000] w-80">
         <Autocomplete
           onLoad={onAutocompleteLoad}
@@ -300,10 +372,12 @@ function GoMap() {
         </Autocomplete>
       </div>
 
+      {/* Botão do sidebar */}
       <div className="absolute top-20 left-4 z-[3]">
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
 
+      {/* Marcador da localização do usuário */}
       {userLocation && (
         <Marker
           position={userLocation}
@@ -318,6 +392,7 @@ function GoMap() {
         />
       )}
 
+      {/* Marcadores de lugares próximos */}
       {nearbyPlaces.map((place) => (
         <Marker
           key={place.place_id}
@@ -329,39 +404,67 @@ function GoMap() {
             setSelectedPlace({
               lat: place.geometry.location.lat(),
               lng: place.geometry.location.lng(),
+              placeId: place.place_id,
+            });
+            setPlaceDetails({
+              name: place.name || "Local desconhecido",
+              address: place.vicinity || "Endereço não disponível",
+              types: place.types,
             });
           }}
         />
       ))}
 
-      {selectedPlace && (
+      {/* InfoWindow personalizado */}
+      {selectedPlace && placeDetails && (
         <InfoWindow
           position={selectedPlace}
-          onCloseClick={() => setSelectedPlace(null)}
+          onCloseClick={() => {
+            setSelectedPlace(null);
+            setPlaceDetails(null);
+          }}
+          options={{
+            disableAutoPan: false,
+            maxWidth: 300,
+            pixelOffset: new window.google.maps.Size(0, -40),
+          }}
         >
-          <div className="flex items-center space-x-2">
-            <p>Deseja cadastrar acessibilidade aqui?</p>
+          <div className="p-3 min-w-[200px]">
+            <h3 className="font-semibold text-lg mb-2 text-gray-800">
+              {placeDetails.name}
+            </h3>
+
+            {placeDetails.address && (
+              <p className="text-sm text-gray-600 mb-3">
+                {placeDetails.address}
+              </p>
+            )}
+
             <button
               onClick={() => setShowSidebar(true)}
-              className="p-2 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+              className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              <span className="material-icons">add</span>
+              Adicionar informações de acessibilidade
             </button>
           </div>
         </InfoWindow>
       )}
 
+      {/* Sidebar */}
       {showSidebar && (
         <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
           <SidebarForm
             onClose={() => setShowSidebar(false)}
             selectedLocation={selectedPlace}
+            placeDetails={placeDetails}
           />
         </div>
       )}
     </GoogleMap>
   ) : (
-    <></>
+    <div className="flex items-center justify-center h-full">
+      <p>Carregando mapa...</p>
+    </div>
   );
 }
 

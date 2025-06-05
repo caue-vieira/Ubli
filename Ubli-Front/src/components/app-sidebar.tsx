@@ -75,7 +75,7 @@ const data = {
       items: [
         {
           title: "Reportar Problema",
-          url: "#",
+          url: "http://localhost:5173/reportar-problema",
         },
         {
           title: "Contato",
@@ -101,11 +101,6 @@ const data = {
           url: "#",
         },
       ],
-    },
-    {
-      title: "Configurações",
-      url: "#",
-      icon: Settings2,
     },
   ],
   projects: [
