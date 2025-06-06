@@ -71,6 +71,7 @@ const data = {
       title: "Ajuda",
       url: "#",
       icon: Bot,
+      isActive: true,
       items: [
         {
           title: "Reportar Problema",
@@ -90,6 +91,7 @@ const data = {
       title: "Documentação",
       url: "#",
       icon: BookOpen,
+      isActive: true,
       items: [
         {
           title: "Introdução",

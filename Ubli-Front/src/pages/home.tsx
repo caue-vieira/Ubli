@@ -7,7 +7,7 @@ import GoMap from "../components/maps/GoMap";
 export default function Home() {
   return (
     <>
-      <SidebarProvider>
+      <SidebarProvider className="z-10">
         <AppSidebar />
         <SidebarInset>
           <GoMap />

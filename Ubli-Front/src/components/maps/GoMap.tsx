@@ -27,6 +27,25 @@ type PlaceDetails = {
   types?: string[];
 };
 
+type AccessibilityFeatures = {
+  rampa: boolean;
+  elevador: boolean;
+  banheiro_acessivel: boolean;
+  sinalizacao_tatil: boolean;
+  vaga_especial: boolean;
+  piso_tatil: boolean;
+  acesso_cadeirantes: boolean;
+  audio_descricao: boolean;
+  braille: boolean;
+};
+
+type AccessibilityData = {
+  features: AccessibilityFeatures;
+  observations: string;
+  tipo: string;
+  images?: string[];
+};
+
 function GoMap() {
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
@@ -51,10 +70,12 @@ function GoMap() {
   const [showAddOptions, setShowAddOptions] = useState(false);
   const [showAddressSearch, setShowAddressSearch] = useState(false);
   const addressSearchInputRef = useRef<HTMLInputElement | null>(null);
+  const [accessibilityData, setAccessibilityData] = useState<
+    Record<string, AccessibilityData>
+  >({});
 
-  // Configuração do mapa para mostrar POIs padrão mas controlar os cliques
   const mapOptions = {
-    clickableIcons: true, // Permite cliques nos ícones
+    clickableIcons: true,
     styles: [
       {
         featureType: "poi",
@@ -64,10 +85,24 @@ function GoMap() {
       {
         featureType: "poi",
         elementType: "labels.icon",
-        stylers: [{ visibility: "on" }], // Mostra ícones de POIs
+        stylers: [{ visibility: "on" }],
       },
     ],
   };
+
+  useEffect(() => {
+    const savedData = localStorage.getItem("accessibilityData");
+    if (savedData) {
+      setAccessibilityData(JSON.parse(savedData));
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "accessibilityData",
+      JSON.stringify(accessibilityData)
+    );
+  }, [accessibilityData]);
 
   const loadNearbyPlaces = useCallback(
     (location: google.maps.LatLngLiteral) => {
@@ -96,11 +131,9 @@ function GoMap() {
       map.fitBounds(bounds);
       setMap(map);
 
-      // Listener para interceptar cliques em POIs
       const clickListener = map.addListener("click", (event) => {
-        // Se clicou em um POI (placeId existe)
         if (event.placeId) {
-          event.stop(); // Impede o InfoWindow padrão
+          event.stop();
 
           const service = new window.google.maps.places.PlacesService(map);
           service.getDetails(
@@ -134,12 +167,10 @@ function GoMap() {
             }
           );
         } else {
-          // Clicou em área vazia do mapa
           setSelectedPlace(null);
         }
       });
 
-      // Obter localização do usuário
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -329,7 +360,7 @@ function GoMap() {
               </button>
             </>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-3 z-5">
               <h3 className="font-semibold text-gray-800">Buscar endereço</h3>
               <input
                 ref={addressSearchInputRef}
@@ -356,7 +387,6 @@ function GoMap() {
         </div>
       )}
 
-      {/* Barra de busca */}
       <div className="absolute top-4 right-20 z-[1000] w-80">
         <Autocomplete
           onLoad={onAutocompleteLoad}
@@ -372,12 +402,10 @@ function GoMap() {
         </Autocomplete>
       </div>
 
-      {/* Botão do sidebar */}
       <div className="absolute top-20 left-4 z-[3]">
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
 
-      {/* Marcador da localização do usuário */}
       {userLocation && (
         <Marker
           position={userLocation}
@@ -392,7 +420,6 @@ function GoMap() {
         />
       )}
 
-      {/* Marcadores de lugares próximos */}
       {nearbyPlaces.map((place) => (
         <Marker
           key={place.place_id}
@@ -415,7 +442,6 @@ function GoMap() {
         />
       ))}
 
-      {/* InfoWindow personalizado */}
       {selectedPlace && placeDetails && (
         <InfoWindow
           position={selectedPlace}
@@ -440,23 +466,59 @@ function GoMap() {
               </p>
             )}
 
+            {selectedPlace.placeId &&
+              accessibilityData[selectedPlace.placeId] && (
+                <div className="mb-3">
+                  <h4 className="font-medium text-sm mb-1">Acessibilidades:</h4>
+                  <ul className="space-y-1">
+                    {Object.entries(
+                      accessibilityData[selectedPlace.placeId].features
+                    )
+                      .filter(([_, value]) => value)
+                      .map(([key]) => (
+                        <li
+                          key={key}
+                          className="flex items-center text-sm py-1 px-2 bg-blue-50 rounded"
+                        >
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          <span className="capitalize">
+                            {key.replace("_", " ")}
+                          </span>
+                        </li>
+                      ))}
+                  </ul>
+                </div>
+              )}
+
             <button
               onClick={() => setShowSidebar(true)}
               className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
-              Adicionar informações de acessibilidade
+              {selectedPlace.placeId && accessibilityData[selectedPlace.placeId]
+                ? "Editar informações"
+                : "Adicionar informações"}
             </button>
           </div>
         </InfoWindow>
       )}
 
-      {/* Sidebar */}
-      {showSidebar && (
+      {showSidebar && selectedPlace && (
         <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
           <SidebarForm
             onClose={() => setShowSidebar(false)}
             selectedLocation={selectedPlace}
             placeDetails={placeDetails}
+            existingData={
+              selectedPlace.placeId
+                ? accessibilityData[selectedPlace.placeId]
+                : null
+            }
+            onSave={(placeId, data) => {
+              setAccessibilityData((prev) => ({
+                ...prev,
+                [placeId]: data,
+              }));
+            }}
           />
         </div>
       )}

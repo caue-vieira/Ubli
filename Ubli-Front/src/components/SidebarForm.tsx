@@ -12,29 +12,41 @@ interface AccessibilityFeatures {
   braille: boolean;
 }
 
+interface AccessibilityData {
+  features: AccessibilityFeatures;
+  observations: string;
+  tipo: string;
+  images?: string[];
+}
+
 interface SidebarFormProps {
   onClose: () => void;
   selectedLocation?: {
     lat: number;
     lng: number;
+    placeId?: string;
   } | null;
   placeDetails?: {
     name?: string;
     vicinity?: string;
     formatted_address?: string;
   } | null;
+  existingData?: AccessibilityData | null;
+  onSave: (placeId: string, data: AccessibilityData) => void;
 }
 
 const SidebarForm: React.FC<SidebarFormProps> = ({
   onClose,
   selectedLocation,
   placeDetails,
+  existingData,
+  onSave,
 }) => {
   const [formData, setFormData] = useState({
     nome: placeDetails?.name || "",
-    endereco: placeDetails?.vicinity || "",
-    tipo: "",
-    acessibilidades: {
+    endereco: placeDetails?.vicinity || placeDetails?.formatted_address || "",
+    tipo: existingData?.tipo || "",
+    acessibilidades: existingData?.features || {
       rampa: false,
       elevador: false,
       banheiro_acessivel: false,
@@ -44,9 +56,9 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
       acesso_cadeirantes: false,
       audio_descricao: false,
       braille: false,
-    } as AccessibilityFeatures,
+    },
     imagens: [] as File[],
-    observacoes: "",
+    observacoes: existingData?.observations || "",
   });
 
   const handleChange = (
@@ -84,14 +96,16 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const dadosCompletos = {
-      ...formData,
-      localizacao: selectedLocation,
-      data: new Date().toISOString(),
+    if (!selectedLocation?.placeId) return;
+
+    const dataToSave: AccessibilityData = {
+      features: formData.acessibilidades,
+      observations: formData.observacoes,
+      tipo: formData.tipo,
+      // Adicione aqui a lógica para upload de imagens se necessário
     };
 
-    console.log("Dados enviados:", dadosCompletos);
-    alert("Informações de acessibilidade salvas com sucesso!");
+    onSave(selectedLocation.placeId, dataToSave);
     onClose();
   };
 
@@ -109,7 +123,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     <div className="p-6 h-full flex flex-col">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">
-          Cadastrar Acessibilidade
+          {existingData ? "Editar Acessibilidade" : "Cadastrar Acessibilidade"}
         </h2>
         <button
           onClick={onClose}
@@ -120,12 +134,14 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
       </div>
 
       {/* Dados do local */}
-      <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+      <div className="mb-4 p-4 bg-gray-50 rounded-lg">
         <h3 className="font-semibold text-lg">
           {placeDetails?.name || "Local selecionado"}
         </h3>
         <p className="text-gray-600">
-          {placeDetails?.vicinity || "Endereço não disponível"}
+          {placeDetails?.vicinity ||
+            placeDetails?.formatted_address ||
+            "Endereço não disponível"}
         </p>
         {selectedLocation && (
           <p className="text-sm text-gray-500 mt-1">
@@ -134,6 +150,33 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           </p>
         )}
       </div>
+
+      {/* Exibir acessibilidades existentes */}
+      {existingData && (
+        <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+          <h4 className="font-medium text-blue-800 mb-2">
+            Acessibilidades já cadastradas:
+          </h4>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(existingData.features)
+              .filter(([_, value]) => value)
+              .map(([key]) => (
+                <span
+                  key={key}
+                  className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full capitalize"
+                >
+                  {key.replace("_", " ")}
+                </span>
+              ))}
+          </div>
+          {existingData.observations && (
+            <p className="mt-2 text-sm text-blue-700">
+              <span className="font-medium">Observações:</span>{" "}
+              {existingData.observations}
+            </p>
+          )}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
         <div className="space-y-4 flex-1 overflow-y-auto">
@@ -247,7 +290,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
             type="submit"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Salvar
+            {existingData ? "Atualizar" : "Salvar"}
           </button>
         </div>
       </form>
