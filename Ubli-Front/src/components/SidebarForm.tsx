@@ -64,6 +64,9 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     observacoes: "",
   });
 
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+
   // Preenche os campos automaticamente quando placeDetails muda
   useEffect(() => {
     if (placeDetails) {
@@ -76,20 +79,30 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         endereco: endereco,
         tipo: existingData?.tipo || tipo || "",
       }));
+
+      if (existingData?.images) {
+        setImagePreviews(existingData.images);
+      }
     }
   }, [placeDetails, existingData]);
+
+  // Converte arquivos para base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
 
   // Função melhorada para obter o endereço completo
   const getCompleteAddress = (details: any) => {
     if (!details) return "Endereço não disponível";
 
-    // Prioridade 1: formatted_address (geralmente o mais completo)
     if (details.formatted_address) return details.formatted_address;
-
-    // Prioridade 2: vicinity (mais comum em resultados de busca)
     if (details.vicinity) return details.vicinity;
 
-    // Prioridade 3: Construir a partir dos componentes
     if (details.address_components) {
       const components = {
         street_number: details.address_components.find((c: any) =>
@@ -117,7 +130,6 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
 
       const addressParts = [];
 
-      // Endereço linha 1 (rua e número)
       if (components.route) {
         addressParts.push(
           `${components.route}${
@@ -126,12 +138,10 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         );
       }
 
-      // Bairro
       if (components.sublocality) {
         addressParts.push(components.sublocality);
       }
 
-      // Cidade/Estado
       if (components.locality && components.administrative_area_level_1) {
         addressParts.push(
           `${components.locality} - ${components.administrative_area_level_1}`
@@ -142,7 +152,6 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         addressParts.push(components.administrative_area_level_1);
       }
 
-      // CEP e País (opcionais)
       if (components.postal_code) {
         addressParts.push(`CEP: ${components.postal_code}`);
       }
@@ -201,7 +210,6 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         },
       }));
     } else if (name !== "endereco") {
-      // Impede a edição do endereço
       setFormData((prev) => ({
         ...prev,
         [name]: value,
@@ -209,28 +217,57 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const files = Array.from(e.target.files);
       setFormData((prev) => ({
         ...prev,
-        imagens: Array.from(e.target.files as FileList),
+        imagens: [...prev.imagens, ...files],
       }));
+
+      setIsUploading(true);
+      try {
+        const newPreviews = await Promise.all(
+          files.map((file) => convertToBase64(file))
+        );
+        setImagePreviews((prev) => [...prev, ...newPreviews]);
+      } catch (error) {
+        console.error("Erro ao converter imagens:", error);
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const removeImage = (index: number) => {
+    setFormData((prev) => ({
+      ...prev,
+      imagens: prev.imagens.filter((_, i) => i !== index),
+    }));
+    setImagePreviews((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedLocation?.placeId) return;
 
-    const dataToSave: AccessibilityData = {
-      features: formData.acessibilidades,
-      observations: formData.observacoes,
-      tipo: formData.tipo,
-    };
+    setIsUploading(true);
+    try {
+      const dataToSave: AccessibilityData = {
+        features: formData.acessibilidades,
+        observations: formData.observacoes,
+        tipo: formData.tipo,
+        images: imagePreviews,
+      };
 
-    onSave(selectedLocation.placeId, dataToSave);
-    onClose();
+      onSave(selectedLocation.placeId, dataToSave);
+      onClose();
+    } catch (error) {
+      console.error("Erro ao salvar dados:", error);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const tiposEstabelecimento = [
@@ -412,7 +449,39 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
             </div>
           </motion.div>
 
-          {/* Imagens */}
+          {/* Pré-visualização das imagens */}
+          {imagePreviews.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45 }}
+              className="mb-4"
+            >
+              <label className="block mb-2 font-medium">
+                Pré-visualização das Fotos
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {imagePreviews.map((preview, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={preview}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-24 object-cover rounded border border-gray-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Upload de imagens */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -424,10 +493,13 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
               accept="image/*"
               multiple
               onChange={handleImageUpload}
-              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition"
+              disabled={isUploading}
+              className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition disabled:opacity-50"
             />
             <p className="text-xs text-gray-500 mt-1">
-              Adicione fotos que comprovem as condições de acessibilidade
+              {isUploading
+                ? "Processando imagens..."
+                : "Adicione fotos que comprovem as condições de acessibilidade"}
             </p>
           </motion.div>
 
@@ -454,7 +526,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.55 }}
-          className="mt-6 pt-4 border-t flex justify-between pb-10"
+          className="mt-6 pt-4 border-t flex justify-between"
         >
           <button
             type="button"
@@ -467,9 +539,38 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
             type="submit"
             whileHover={{ scale: 1.03 }}
             whileTap={{ scale: 0.98 }}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors"
+            disabled={isUploading}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors disabled:opacity-50"
           >
-            {existingData ? "Atualizar" : "Salvar"}
+            {isUploading ? (
+              <span className="flex items-center">
+                <svg
+                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
+                Salvando...
+              </span>
+            ) : existingData ? (
+              "Atualizar"
+            ) : (
+              "Salvar"
+            )}
           </motion.button>
         </motion.div>
       </form>

@@ -10,6 +10,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import SidebarForm from "@/components/SidebarForm.tsx";
 import addButtonIcon from "@/images/add-button.png";
 import { AnimatePresence, motion } from "framer-motion";
+import ImageCarousel from "@/components/ImageCarousel";
 
 const center = {
   lat: -3.745,
@@ -467,11 +468,23 @@ function GoMap() {
           }}
           options={{
             disableAutoPan: false,
-            maxWidth: 300,
+            maxWidth: 350,
             pixelOffset: new window.google.maps.Size(0, -40),
           }}
         >
           <div className="p-3 min-w-[200px]">
+            {/* Carrossel de imagens (apenas se existirem imagens) */}
+            {selectedPlace?.placeId &&
+              accessibilityData[selectedPlace.placeId]?.images && (
+                <div className="mb-3">
+                  <ImageCarousel
+                    images={placeData?.images || []}
+                    className="max-h-48 shadow-md"
+                    autoRotate={true}
+                    rotateInterval={7000}
+                  />
+                </div>
+              )}
             <h3 className="font-semibold text-lg mb-2 text-gray-800">
               {placeDetails.name}
             </h3>
@@ -540,7 +553,10 @@ function GoMap() {
                 onSave={(placeId, data) => {
                   setAccessibilityData((prev) => ({
                     ...prev,
-                    [placeId]: data,
+                    [placeId]: {
+                      ...data,
+                      images: data.images || [], // Garante que images sempre exista como array
+                    },
                   }));
                 }}
               />
