@@ -6,6 +6,7 @@ import {
   Command,
   Frame,
   GalleryVerticalEnd,
+  HomeIcon,
   Map,
   PieChart,
   SquareTerminal,
@@ -48,14 +49,14 @@ const data = {
   ],
   navMain: [
     {
-      title: "Lugares",
-      url: "#",
-      icon: SquareTerminal,
+      title: "Mapa",
+      url: "http://localhost:5173/",
+      icon: HomeIcon,
       isActive: true,
       items: [
         {
-          title: "Acessiveis",
-          url: "#",
+          title: "Voltar ao mapa",
+          url: "http://localhost:5173/",
         },
         {
           title: "Parcialmente acessivel",
@@ -95,7 +96,7 @@ const data = {
       items: [
         {
           title: "Introdução",
-          url: "#",
+          url: "http://localhost:5173/introducao",
         },
         {
           title: "Tutoriais",

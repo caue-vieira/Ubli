@@ -4,6 +4,8 @@ import Home from "./pages/home";
 import PoliticaDePrivacidade from "./pages/PoliticaDePrivacidade";
 import ProblemReportPage from "./pages/ProblemReportPage";
 import ContactPage from "./pages/Contact";
+import Introducao from "./pages/Introduction";
+import IntroctionPage from "./pages/Introduction";
 
 function App() {
   return (
@@ -17,6 +19,7 @@ function App() {
         />
         <Route path="reportar-problema" element={<ProblemReportPage />} />
         <Route path="contato" element={<ContactPage />} />
+        <Route path="introducao" element={<IntroctionPage />} />
       </Routes>
     </BrowserRouter>
   );

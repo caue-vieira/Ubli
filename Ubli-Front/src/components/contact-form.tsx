@@ -22,7 +22,7 @@ const ContactPage = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
     console.log("Formulário de contato:", formData);
-    // Aqui você pode enviar os dados para seu backend ou serviço de email
+    // Ennviar os dados para seu backend ou serviço de email
     setSubmitted(true);
     setFormData({
       name: "",
@@ -57,7 +57,7 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="absolute top-10 left-4 z-[3]">
+      <div className="absolute top-5 left-4 z-[3]">
         <SidebarTrigger className="bg-white text-black p-2 rounded shadow" />
       </div>
 
