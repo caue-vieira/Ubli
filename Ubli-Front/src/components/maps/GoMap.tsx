@@ -80,6 +80,8 @@ function GoMap() {
   >({});
 
   const mapOptions = {
+    minZoom: 5,
+    streetViewControl: true,
     clickableIcons: true,
     styles: [
       {
