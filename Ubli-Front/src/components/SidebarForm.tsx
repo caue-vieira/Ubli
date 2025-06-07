@@ -526,7 +526,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.55 }}
-          className="mt-6 pt-4 border-t flex justify-between"
+          className="mt-6 pb-10 pt-4 border-t flex justify-between"
         >
           <button
             type="button"

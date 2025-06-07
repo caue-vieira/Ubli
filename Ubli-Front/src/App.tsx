@@ -3,6 +3,7 @@ import LoginPage from "./pages/LoginPage";
 import Home from "./pages/home";
 import PoliticaDePrivacidade from "./pages/PoliticaDePrivacidade";
 import ProblemReportPage from "./pages/ProblemReportPage";
+import ContactPage from "./pages/Contact";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
           element={<PoliticaDePrivacidade />}
         />
         <Route path="reportar-problema" element={<ProblemReportPage />} />
+        <Route path="contato" element={<ContactPage />} />
       </Routes>
     </BrowserRouter>
   );

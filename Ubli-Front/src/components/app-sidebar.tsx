@@ -79,7 +79,7 @@ const data = {
         },
         {
           title: "Contato",
-          url: "#",
+          url: "http://localhost:5173/contato",
         },
         {
           title: "Política de privacidade",
