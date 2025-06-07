@@ -9,6 +9,7 @@ import {
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import SidebarForm from "@/components/SidebarForm.tsx";
 import addButtonIcon from "@/images/add-button.png";
+import { AnimatePresence, motion } from "framer-motion";
 
 const center = {
   lat: -3.745,
@@ -22,9 +23,12 @@ type PlaceLocation = {
 };
 
 type PlaceDetails = {
-  name: string;
+  name?: string;
+  vicinity?: string;
+  formatted_andress?: string;
   address: string;
   types?: string[];
+  address_components?: any[];
 };
 
 type AccessibilityFeatures = {
@@ -145,6 +149,7 @@ function GoMap() {
                 "geometry",
                 "types",
                 "vicinity",
+                "address_components",
               ],
             },
             (place, status) => {
@@ -156,12 +161,11 @@ function GoMap() {
                 };
                 setSelectedPlace(location);
                 setPlaceDetails({
-                  name: place.name || "Local desconhecido",
-                  address:
-                    place.vicinity ||
-                    place.formatted_address ||
-                    "Endereço não disponível",
+                  name: place.name,
+                  vicinity: place.vicinity,
+                  formatted_address: place.formatted_address,
                   types: place.types,
+                  address_components: place.address_components,
                 });
               }
             }
@@ -222,9 +226,11 @@ function GoMap() {
         placeId: place.place_id,
       });
       setPlaceDetails({
-        name: place.name || "Local desconhecido",
-        address: place.formatted_address || "Endereço não disponível",
+        name: place.name,
+        vicinity: place.vicinity,
+        formatted_address: place.formatted_address,
         types: place.types,
+        address_components: place.address_components,
       });
       loadNearbyPlaces(location);
     }
@@ -237,7 +243,15 @@ function GoMap() {
     const service = new google.maps.places.PlacesService(map);
     const request = {
       query,
-      fields: ["name", "geometry", "place_id", "formatted_address", "types"],
+      fields: [
+        "name",
+        "geometry",
+        "place_id",
+        "formatted_address",
+        "types",
+        "vicinity",
+        "address_components",
+      ],
     };
 
     service.findPlaceFromQuery(request, (results, status) => {
@@ -259,9 +273,11 @@ function GoMap() {
           placeId: place.place_id,
         });
         setPlaceDetails({
-          name: place.name || "Local desconhecido",
-          address: place.formatted_address || "Endereço não disponível",
+          name: place.name,
+          vicinity: place.vicinity,
+          formatted_address: place.formatted_address,
           types: place.types,
+          address_components: place.address_components,
         });
         loadNearbyPlaces(location);
       }
@@ -460,9 +476,9 @@ function GoMap() {
               {placeDetails.name}
             </h3>
 
-            {placeDetails.address && (
+            {placeDetails.formatted_address && (
               <p className="text-sm text-gray-600 mb-3">
-                {placeDetails.address}
+                {placeDetails.formatted_address}
               </p>
             )}
 
@@ -495,7 +511,7 @@ function GoMap() {
               className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
               {selectedPlace.placeId && accessibilityData[selectedPlace.placeId]
-                ? "Editar informações"
+                ? "Ver mais informações"
                 : "Adicionar informações"}
             </button>
           </div>
@@ -503,24 +519,34 @@ function GoMap() {
       )}
 
       {showSidebar && selectedPlace && (
-        <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
-          <SidebarForm
-            onClose={() => setShowSidebar(false)}
-            selectedLocation={selectedPlace}
-            placeDetails={placeDetails}
-            existingData={
-              selectedPlace.placeId
-                ? accessibilityData[selectedPlace.placeId]
-                : null
-            }
-            onSave={(placeId, data) => {
-              setAccessibilityData((prev) => ({
-                ...prev,
-                [placeId]: data,
-              }));
-            }}
-          />
-        </div>
+        <AnimatePresence>
+          <motion.div
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+            className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto"
+          >
+            <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
+              <SidebarForm
+                onClose={() => setShowSidebar(false)}
+                selectedLocation={selectedPlace}
+                placeDetails={placeDetails} // Agora com todos os campos necessários
+                existingData={
+                  selectedPlace.placeId
+                    ? accessibilityData[selectedPlace.placeId]
+                    : null
+                }
+                onSave={(placeId, data) => {
+                  setAccessibilityData((prev) => ({
+                    ...prev,
+                    [placeId]: data,
+                  }));
+                }}
+              />
+            </div>
+          </motion.div>
+        </AnimatePresence>
       )}
     </GoogleMap>
   ) : (
