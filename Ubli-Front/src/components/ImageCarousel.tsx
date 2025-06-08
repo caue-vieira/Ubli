@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Zoom from "react-medium-image-zoom";
 
 interface ImageCarouselProps {
   images: (string | undefined)[];
@@ -80,15 +81,17 @@ const ImageCarousel: React.FC<ImageCarouselProps> = ({
           exit="exit"
           className="absolute inset-0"
         >
-          <img
-            src={images[currentIndex]}
-            alt={`Imagem ${currentIndex + 1} do local`}
-            className="w-full h-full object-cover"
-            loading="lazy"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
+          <Zoom>
+            <img
+              src={images[currentIndex]}
+              alt={`Imagem ${currentIndex + 1} do local`}
+              className="w-full h-full object-cover"
+              loading="lazy"
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          </Zoom>
         </motion.div>
       </AnimatePresence>
 

@@ -5,9 +5,6 @@ import PoliticaDePrivacidade from "./pages/PoliticaDePrivacidade";
 import ProblemReportPage from "./pages/ProblemReportPage";
 import ContactPage from "./pages/Contact";
 import IntroctionPage from "./pages/Introduction";
-import "slick-carousel/slick/slick.css";
-import "slick-carousel/slick/slick-theme.css";
-import "react-medium-image-zoom/dist/styles.css";
 
 function App() {
   return (
