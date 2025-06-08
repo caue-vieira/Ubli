@@ -89,10 +89,27 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
   // Converte arquivos para base64
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
+      if (!file.type.match("image.*")) {
+        reject(new Error("Apenas arquivos de imagem são permitidos"));
+        return;
+      }
+
+      if (file.size > 5 * 1024 * 1024) {
+        // 5MB
+        reject(new Error("Imagem muito grande (máximo 5MB)"));
+        return;
+      }
+
       const reader = new FileReader();
+      reader.onload = () => {
+        if (reader.result) {
+          resolve(reader.result as string);
+        } else {
+          reject(new Error("Falha ao ler o arquivo"));
+        }
+      };
+      reader.onerror = () => reject(new Error("Erro ao ler o arquivo"));
       reader.readAsDataURL(file);
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = (error) => reject(error);
     });
   };
 
@@ -250,21 +267,40 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!selectedLocation?.placeId) return;
+    if (!selectedLocation?.placeId) {
+      console.error("Nenhum local selecionado");
+      return;
+    }
 
     setIsUploading(true);
+
     try {
+      // Processa apenas as novas imagens (não as que já estão em base64)
+      const newImages = formData.imagens.filter((file) => file instanceof File);
+      const newImageUrls = await Promise.all(
+        newImages.map((file) => convertToBase64(file))
+      );
+
+      const allImages = [
+        ...imagePreviews.filter((img) => !img.startsWith("data:")), // Mantém URLs já salvas
+        ...newImageUrls,
+      ];
+
       const dataToSave: AccessibilityData = {
         features: formData.acessibilidades,
         observations: formData.observacoes,
         tipo: formData.tipo,
-        images: imagePreviews,
+        images: allImages,
       };
 
+      await new Promise((resolve) => setTimeout(resolve, 500)); // Delay para teste
       onSave(selectedLocation.placeId, dataToSave);
       onClose();
     } catch (error) {
       console.error("Erro ao salvar dados:", error);
+      alert(
+        "Ocorreu um erro ao salvar. Verifique o console para mais detalhes."
+      );
     } finally {
       setIsUploading(false);
     }
@@ -295,7 +331,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           transition={{ delay: 0.1 }}
           className="text-xl font-bold text-gray-800"
         >
-          {existingData ? "Editar Acessibilidade" : "Cadastrar Acessibilidade"}
+          {existingData ? "Acessibilidades" : "Cadastrar Acessibilidade"}
         </motion.h2>
         <button
           onClick={onClose}

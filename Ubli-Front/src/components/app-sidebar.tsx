@@ -6,6 +6,7 @@ import {
   Command,
   Frame,
   GalleryVerticalEnd,
+  HelpCircleIcon,
   HomeIcon,
   Map,
   PieChart,
@@ -71,7 +72,7 @@ const data = {
     {
       title: "Ajuda",
       url: "#",
-      icon: Bot,
+      icon: HelpCircleIcon,
       isActive: true,
       items: [
         {

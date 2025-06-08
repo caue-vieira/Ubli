@@ -26,8 +26,7 @@ type PlaceLocation = {
 type PlaceDetails = {
   name?: string;
   vicinity?: string;
-  formatted_andress?: string;
-  address: string;
+  formatted_address?: string;
   types?: string[];
   address_components?: any[];
 };
@@ -78,6 +77,7 @@ function GoMap() {
   const [accessibilityData, setAccessibilityData] = useState<
     Record<string, AccessibilityData>
   >({});
+  const [isSaving, setIsSaving] = useState(false);
 
   const mapOptions = {
     minZoom: 5,
@@ -100,15 +100,23 @@ function GoMap() {
   useEffect(() => {
     const savedData = localStorage.getItem("accessibilityData");
     if (savedData) {
-      setAccessibilityData(JSON.parse(savedData));
+      try {
+        setAccessibilityData(JSON.parse(savedData));
+      } catch (error) {
+        console.error("Erro ao carregar dados do localStorage:", error);
+      }
     }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem(
-      "accessibilityData",
-      JSON.stringify(accessibilityData)
-    );
+    try {
+      localStorage.setItem(
+        "accessibilityData",
+        JSON.stringify(accessibilityData)
+      );
+    } catch (error) {
+      console.error("Erro ao salvar no localStorage:", error);
+    }
   }, [accessibilityData]);
 
   const loadNearbyPlaces = useCallback(
@@ -299,7 +307,7 @@ function GoMap() {
       setSelectedPlace(userLocation);
       setPlaceDetails({
         name: "Minha Localização",
-        address: "Localização atual do usuário",
+        formatted_address: "Localização atual do usuário",
       });
       setShowSidebar(true);
       setShowAddOptions(false);
@@ -321,7 +329,8 @@ function GoMap() {
           setSelectedPlace(location);
           setPlaceDetails({
             name: results[0].formatted_address || "Endereço pesquisado",
-            address: results[0].formatted_address || "Endereço não disponível",
+            formatted_address:
+              results[0].formatted_address || "Endereço não disponível",
           });
           setShowSidebar(true);
           setShowAddOptions(false);
@@ -329,6 +338,50 @@ function GoMap() {
         }
       }
     );
+  };
+
+  const handleSaveData = async (placeId: string, data: AccessibilityData) => {
+    setIsSaving(true);
+    try {
+      // Verifica se há imagens muito grandes
+      const hasLargeImages = data.images?.some(
+        (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024 // ~5MB
+      );
+
+      if (hasLargeImages) {
+        throw new Error("Algumas imagens são muito grandes (limite de 5MB)");
+      }
+
+      const newData = {
+        ...data,
+        images: data.images?.filter((img) => img) || [], // Remove possíveis valores undefined
+      };
+
+      setAccessibilityData((prev) => ({
+        ...prev,
+        [placeId]: newData,
+      }));
+
+      // Salva no localStorage com tratamento de quota
+      try {
+        localStorage.setItem(
+          "accessibilityData",
+          JSON.stringify({
+            ...accessibilityData,
+            [placeId]: newData,
+          })
+        );
+      } catch (e) {
+        console.warn("Não foi possível salvar no localStorage:", e);
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Erro ao salvar dados:", error);
+      throw error;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return isLoaded ? (
@@ -454,7 +507,7 @@ function GoMap() {
             });
             setPlaceDetails({
               name: place.name || "Local desconhecido",
-              address: place.vicinity || "Endereço não disponível",
+              formatted_address: place.vicinity || "Endereço não disponível",
               types: place.types,
             });
           }}
@@ -476,17 +529,17 @@ function GoMap() {
         >
           <div className="p-3 min-w-[200px]">
             {/* Carrossel de imagens (apenas se existirem imagens) */}
-            {selectedPlace?.placeId &&
-              accessibilityData[selectedPlace.placeId]?.images && (
+            {selectedPlace.placeId &&
+              accessibilityData[selectedPlace.placeId]?.images &&
+              accessibilityData[selectedPlace.placeId].images.length > 0 && (
                 <div className="mb-3">
                   <ImageCarousel
-                    images={placeData?.images || []}
-                    className="max-h-48 shadow-md"
-                    autoRotate={true}
-                    rotateInterval={7000}
+                    images={accessibilityData[selectedPlace.placeId].images}
+                    className="max-h-48"
                   />
                 </div>
               )}
+
             <h3 className="font-semibold text-lg mb-2 text-gray-800">
               {placeDetails.name}
             </h3>
@@ -526,7 +579,7 @@ function GoMap() {
               className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             >
               {selectedPlace.placeId && accessibilityData[selectedPlace.placeId]
-                ? "Ver mais informações"
+                ? "Editar informações"
                 : "Adicionar informações"}
             </button>
           </div>
@@ -542,29 +595,53 @@ function GoMap() {
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto"
           >
-            <div className="absolute top-0 right-0 w-full max-w-md h-full bg-white z-[2000] shadow-xl overflow-y-auto">
-              <SidebarForm
-                onClose={() => setShowSidebar(false)}
-                selectedLocation={selectedPlace}
-                placeDetails={placeDetails} // Agora com todos os campos necessários
-                existingData={
-                  selectedPlace.placeId
-                    ? accessibilityData[selectedPlace.placeId]
-                    : null
-                }
-                onSave={(placeId, data) => {
-                  setAccessibilityData((prev) => ({
-                    ...prev,
-                    [placeId]: {
-                      ...data,
-                      images: data.images || [], // Garante que images sempre exista como array
-                    },
-                  }));
-                }}
-              />
-            </div>
+            <SidebarForm
+              onClose={() => setShowSidebar(false)}
+              selectedLocation={selectedPlace}
+              placeDetails={placeDetails}
+              existingData={
+                selectedPlace.placeId
+                  ? accessibilityData[selectedPlace.placeId]
+                  : null
+              }
+              onSave={handleSaveData}
+            />
           </motion.div>
         </AnimatePresence>
+      )}
+
+      {/* Overlay de carregamento durante o salvamento */}
+      {isSaving && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[3000]">
+          <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm">
+            <div className="flex items-center space-x-4">
+              <svg
+                className="animate-spin h-8 w-8 text-blue-500"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <div>
+                <h3 className="text-lg font-medium">Salvando dados...</h3>
+                <p className="text-sm text-gray-600">Por favor, aguarde.</p>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </GoogleMap>
   ) : (
