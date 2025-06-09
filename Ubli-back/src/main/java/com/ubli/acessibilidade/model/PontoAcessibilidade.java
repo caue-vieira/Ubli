@@ -6,22 +6,27 @@ import java.util.UUID;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import jakarta.persistence.Transient;
 
 @Entity
+@Table(name = "PontoAcessibilidade")
 public class PontoAcessibilidade {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
     private String descricao;
+    @Column(name = "classificacao_local")
     private Integer classificacaoLocal;
     private Double latitude;
     private Double longitude;
+    @Column(name = "id_usuario")
     private UUID idUsuario;
     // Não é necessário criar este campo no banco
     @Transient

@@ -4,24 +4,27 @@ import java.util.UUID;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 
 @Entity
-public class FotoLocal {
+public class FotosLocal {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+    @Column(name = "id_ponto_acessibilidade")
     private UUID idPontoAcessibilidade;
+    @Column(name = "caminho_arquivo")
     private String caminhoArquivo;
 
-    public FotoLocal() {
+    public FotosLocal() {
     }
 
-    public FotoLocal(UUID idPontoAcessibilidade, String caminhoArquivo) {
+    public FotosLocal(UUID idPontoAcessibilidade, String caminhoArquivo) {
         this.idPontoAcessibilidade = idPontoAcessibilidade;
         this.caminhoArquivo = caminhoArquivo;
     }

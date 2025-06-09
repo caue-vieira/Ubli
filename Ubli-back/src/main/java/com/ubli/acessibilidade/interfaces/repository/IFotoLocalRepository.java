@@ -5,8 +5,8 @@ import java.util.UUID;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.ubli.acessibilidade.model.FotoLocal;
+import com.ubli.acessibilidade.model.FotosLocal;
 
-public interface IFotoLocalRepository extends JpaRepository<FotoLocal, UUID> {
-    public List<FotoLocal> findAllByIdPontoAcessibilidade(UUID idPontoAcessibilidade);
+public interface IFotoLocalRepository extends JpaRepository<FotosLocal, UUID> {
+    public List<FotosLocal> findAllByIdPontoAcessibilidade(UUID idPontoAcessibilidade);
 }
