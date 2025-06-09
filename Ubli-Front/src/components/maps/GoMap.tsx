@@ -53,7 +53,7 @@ type AccessibilityData = {
 function GoMap() {
   const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyCh0P28cr395a0_mzOCw9ZO3BsHhO22dCY",
+    googleMapsApiKey: "AIzaSyCh0P28cr395a0_mzOCw9ZO3BsHhO22dCY", // Lembre-se de usar uma variável de ambiente para a chave
     libraries: ["places"],
     language: "pt-BR",
     region: "BR",
@@ -79,6 +79,9 @@ function GoMap() {
     Record<string, AccessibilityData>
   >({});
   const [isSaving, setIsSaving] = useState(false);
+
+  // --- ADIÇÃO 1: Estado para controlar a busca responsiva ---
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   useEffect(() => {
     if (isLoaded && window.google) {
@@ -121,6 +124,7 @@ function GoMap() {
 
   const mapOptions = {
     minZoom: 5,
+    fullscreenControl: false,
     streetViewControl: true,
     clickableIcons: true,
     styles: [
@@ -137,19 +141,16 @@ function GoMap() {
     ],
   };
 
-  // Função para determinar a cor do marcador baseado nas acessibilidades
   const getMarkerColor = (
     accessibilityData: AccessibilityData | null
   ): string => {
-    if (!accessibilityData) return "red"; // Sem acessibilidade
-
+    if (!accessibilityData) return "red";
     const features = accessibilityData.features;
     const totalFeatures = Object.keys(features).length;
     const trueFeatures = Object.values(features).filter((v) => v).length;
-
-    if (trueFeatures === 0) return "red"; // Sem acessibilidade
-    if (trueFeatures < totalFeatures / 2) return "yellow"; // Parcialmente acessível
-    return "green"; // Acessível
+    if (trueFeatures === 0) return "red";
+    if (trueFeatures < totalFeatures / 2) return "yellow";
+    return "green";
   };
 
   useEffect(() => {
@@ -177,7 +178,6 @@ function GoMap() {
   const loadNearbyPlaces = useCallback(
     (location: google.maps.LatLngLiteral) => {
       if (!map) return;
-
       const service = new google.maps.places.PlacesService(map);
       service.nearbySearch(
         {
@@ -200,11 +200,9 @@ function GoMap() {
       const bounds = new window.google.maps.LatLngBounds(center);
       map.fitBounds(bounds);
       setMap(map);
-
       const clickListener = map.addListener("click", (event) => {
         if (event.placeId) {
           event.stop();
-
           const service = new window.google.maps.places.PlacesService(map);
           service.getDetails(
             {
@@ -240,7 +238,6 @@ function GoMap() {
           setSelectedPlace(null);
         }
       });
-
       if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
           (position) => {
@@ -259,7 +256,6 @@ function GoMap() {
           }
         );
       }
-
       return () => {
         google.maps.event.removeListener(clickListener);
       };
@@ -299,13 +295,15 @@ function GoMap() {
         address_components: place.address_components,
       });
       loadNearbyPlaces(location);
+
+      //  Fecha o campo de busca no mobile
+      setIsSearchOpen(false);
     }
   };
 
   const handleManualSearch = () => {
     const query = inputRef.current?.value;
     if (!query || !map) return;
-
     const service = new google.maps.places.PlacesService(map);
     const request = {
       query,
@@ -319,7 +317,6 @@ function GoMap() {
         "address_components",
       ],
     };
-
     service.findPlaceFromQuery(request, (results, status) => {
       if (
         status === google.maps.places.PlacesServiceStatus.OK &&
@@ -346,6 +343,9 @@ function GoMap() {
           address_components: place.address_components,
         });
         loadNearbyPlaces(location);
+
+        // Fecha o campo de busca no mobile
+        setIsSearchOpen(false);
       }
     });
   };
@@ -371,7 +371,6 @@ function GoMap() {
 
   const handleAddressSearch = () => {
     if (!addressSearchInputRef.current?.value || !map) return;
-
     const geocoder = new google.maps.Geocoder();
     geocoder.geocode(
       { address: addressSearchInputRef.current.value },
@@ -396,45 +395,32 @@ function GoMap() {
   };
 
   const handleSaveData = async (placeId: string, data: AccessibilityData) => {
-    // Verificação para garantir que temos um local selecionado para adicionar ao mapa.
     if (!selectedPlace) {
       console.error("Nenhum local selecionado para salvar.");
       return false;
     }
-
     setIsSaving(true);
     try {
       const hasLargeImages = data.images?.some(
-        (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024 // ~5MB
+        (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024
       );
-
       if (hasLargeImages) {
         throw new Error("Algumas imagens são muito grandes (limite de 5MB)");
       }
-
       const newData = {
         ...data,
         images: data.images?.filter((img) => img) || [],
       };
-
-      // Atualiza o estado com os dados de acessibilidade
       const newAccessibilityData = { ...accessibilityData, [placeId]: newData };
       setAccessibilityData(newAccessibilityData);
-
-      // Adiciona o novo local à lista de marcadores no mapa (nearbyPlaces)
       setNearbyPlaces((currentPlaces) => {
         const placeExists = currentPlaces.some((p) => p.place_id === placeId);
-
-        // Se o local já existe não faz nada para não duplicar
         if (placeExists) {
           return currentPlaces;
         }
-
-        // Se não existe cria um novo objeto de local e o adiciona à lista
         const newPlaceForMap = {
           place_id: placeId,
           geometry: {
-            // O Google API espera funções lat() e lng()
             location: {
               lat: () => selectedPlace.lat,
               lng: () => selectedPlace.lng,
@@ -445,11 +431,8 @@ function GoMap() {
             placeDetails?.formatted_address || "Endereço não disponível",
           types: placeDetails?.types || [],
         };
-
         return [...currentPlaces, newPlaceForMap];
       });
-
-      // Salva no localStorage
       try {
         localStorage.setItem(
           "accessibilityData",
@@ -458,7 +441,6 @@ function GoMap() {
       } catch (e) {
         console.warn("Não foi possível salvar no localStorage:", e);
       }
-
       return true;
     } catch (error) {
       console.error("Erro ao salvar dados:", error);
@@ -468,9 +450,7 @@ function GoMap() {
     }
   };
 
-  if (loadError) {
-    return <div>Erro ao carregar o Google Maps</div>;
-  }
+  if (loadError) return <div>Erro ao carregar o Google Maps</div>;
 
   if (!isLoaded || !markerIcons) {
     return (
@@ -503,7 +483,10 @@ function GoMap() {
 
       {/* Legenda dos marcadores */}
       <div className="absolute bottom-5 left-4 z-[1000] bg-white p-4 rounded shadow">
-        <div className="flex items-center mb-2">
+        <span>
+          <b>Legenda dos marcadores:</b>{" "}
+        </span>
+        <div className="flex items-center mt-2 mb-2">
           <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
           <span className="text-sm">Acessível</span>
         </div>
@@ -511,12 +494,12 @@ function GoMap() {
           <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
           <span className="text-sm">Parcialmente acessível</span>
         </div>
-        <div className="flex items-center">
+        <div className="flex items-center mb-2">
           <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
           <span className="text-sm">Sem acessibilidade</span>
         </div>
         <div className="flex items-center">
-          <div className="w-4 h-4 rounded-full bg-blue-500 mr-2 mt-2 mb-2"></div>
+          <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
           <span className="text-sm">Sua localização</span>
         </div>
       </div>
@@ -575,19 +558,47 @@ function GoMap() {
         </div>
       )}
 
-      <div className="absolute top-4 right-20 z-[1000] w-80">
-        <Autocomplete
-          onLoad={onAutocompleteLoad}
-          onPlaceChanged={handlePlaceChanged}
-        >
-          <input
-            ref={inputRef}
-            type="text"
-            onKeyDown={handleKeyDown}
-            placeholder="Buscar por endereço ou local..."
-            className="w-full px-4 py-3 rounded-full shadow-lg text-black bg-white outline-none border border-gray-300 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 transition duration-200"
-          />
-        </Autocomplete>
+      {/* --- SUBSTITUIÇÃO: Campo de Busca Responsivo --- */}
+      <div className="absolute top-4 right-4 md:right-20 z-[1000]">
+        {/* Ícone de Busca (Mobile) */}
+        <div className={`${isSearchOpen ? "hidden" : "block"} md:hidden`}>
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg"
+            aria-label="Abrir busca"
+          >
+            <svg
+              className="w-6 h-6 text-gray-700"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Campo de Busca Autocomplete (Desktop ou Mobile aberto) */}
+        <div className={`w-80 ${isSearchOpen ? "block" : "hidden"} md:block`}>
+          <Autocomplete
+            onLoad={onAutocompleteLoad}
+            onPlaceChanged={handlePlaceChanged}
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              onKeyDown={handleKeyDown}
+              placeholder="Buscar por endereço ou local..."
+              className="w-full px-4 py-3 rounded-full shadow-lg text-black bg-white outline-none border border-gray-300 placeholder-gray-500 focus:ring-2 focus:ring-blue-500 transition duration-200"
+            />
+          </Autocomplete>
+        </div>
       </div>
 
       <div className="absolute top-20 left-4 z-[3]">
@@ -602,7 +613,6 @@ function GoMap() {
         const placeId = place.place_id;
         const accessibility = placeId ? accessibilityData[placeId] : null;
         const color = getMarkerColor(accessibility || null);
-
         return (
           <Marker
             key={place.place_id}
@@ -651,17 +661,14 @@ function GoMap() {
                   />
                 </div>
               )}
-
             <h3 className="font-semibold text-lg mb-2 text-gray-800">
               {placeDetails.name}
             </h3>
-
             {placeDetails.formatted_address && (
               <p className="text-sm text-gray-600 mb-3">
                 {placeDetails.formatted_address}
               </p>
             )}
-
             {selectedPlace.placeId &&
               accessibilityData[selectedPlace.placeId] && (
                 <div className="mb-3">
@@ -685,7 +692,6 @@ function GoMap() {
                   </ul>
                 </div>
               )}
-
             <button
               onClick={() => setShowSidebar(true)}
               className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
