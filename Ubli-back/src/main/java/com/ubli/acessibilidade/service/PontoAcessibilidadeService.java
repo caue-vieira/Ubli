@@ -7,13 +7,13 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.errors.DataNotFoundException;
-import com.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
+import com.ubli.acessibilidade.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IPontoAcessibilidadeRepository;
 import com.ubli.acessibilidade.interfaces.service.IPontoAcessibilidadeService;
 import com.ubli.acessibilidade.model.PontoAcessibilidade;
-import com.validators.PontoAcessibilidadeValidator;
+import com.ubli.acessibilidade.validators.PontoAcessibilidadeValidator;
 
 @Service
 public class PontoAcessibilidadeService implements IPontoAcessibilidadeService {
