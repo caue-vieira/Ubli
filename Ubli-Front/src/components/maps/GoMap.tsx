@@ -51,7 +51,7 @@ type AccessibilityData = {
 };
 
 function GoMap() {
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: "google-map-script",
     googleMapsApiKey: "AIzaSyCh0P28cr395a0_mzOCw9ZO3BsHhO22dCY",
     libraries: ["places"],
@@ -61,6 +61,7 @@ function GoMap() {
 
   const [map, setMap] = useState<google.maps.Map | null>(null);
   const [mapCenter, setMapCenter] = useState(center);
+  const [markerIcons, setMarkerIcons] = useState<any>(null);
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<PlaceLocation | null>(
@@ -79,6 +80,45 @@ function GoMap() {
   >({});
   const [isSaving, setIsSaving] = useState(false);
 
+  useEffect(() => {
+    if (isLoaded && window.google) {
+      setMarkerIcons({
+        green: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: "#4CAF50",
+          fillOpacity: 1,
+          strokeWeight: 1,
+          strokeColor: "#ffffff",
+          scale: 8,
+        },
+        yellow: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: "#FFC107",
+          fillOpacity: 1,
+          strokeWeight: 1,
+          strokeColor: "#ffffff",
+          scale: 8,
+        },
+        red: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          fillColor: "#F44336",
+          fillOpacity: 1,
+          strokeWeight: 1,
+          strokeColor: "#ffffff",
+          scale: 8,
+        },
+        user: {
+          path: window.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: "#4285F4",
+          fillOpacity: 1,
+          strokeWeight: 2,
+          strokeColor: "white",
+        },
+      });
+    }
+  }, [isLoaded]);
+
   const mapOptions = {
     minZoom: 5,
     streetViewControl: true,
@@ -95,6 +135,21 @@ function GoMap() {
         stylers: [{ visibility: "on" }],
       },
     ],
+  };
+
+  // Função para determinar a cor do marcador baseado nas acessibilidades
+  const getMarkerColor = (
+    accessibilityData: AccessibilityData | null
+  ): string => {
+    if (!accessibilityData) return "red"; // Sem acessibilidade
+
+    const features = accessibilityData.features;
+    const totalFeatures = Object.keys(features).length;
+    const trueFeatures = Object.values(features).filter((v) => v).length;
+
+    if (trueFeatures === 0) return "red"; // Sem acessibilidade
+    if (trueFeatures < totalFeatures / 2) return "yellow"; // Parcialmente acessível
+    return "green"; // Acessível
   };
 
   useEffect(() => {
@@ -341,9 +396,14 @@ function GoMap() {
   };
 
   const handleSaveData = async (placeId: string, data: AccessibilityData) => {
+    // Verificação para garantir que temos um local selecionado para adicionar ao mapa.
+    if (!selectedPlace) {
+      console.error("Nenhum local selecionado para salvar.");
+      return false;
+    }
+
     setIsSaving(true);
     try {
-      // Verifica se há imagens muito grandes
       const hasLargeImages = data.images?.some(
         (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024 // ~5MB
       );
@@ -354,22 +414,46 @@ function GoMap() {
 
       const newData = {
         ...data,
-        images: data.images?.filter((img) => img) || [], // Remove possíveis valores undefined
+        images: data.images?.filter((img) => img) || [],
       };
 
-      setAccessibilityData((prev) => ({
-        ...prev,
-        [placeId]: newData,
-      }));
+      // Atualiza o estado com os dados de acessibilidade
+      const newAccessibilityData = { ...accessibilityData, [placeId]: newData };
+      setAccessibilityData(newAccessibilityData);
 
-      // Salva no localStorage com tratamento de quota
+      // Adiciona o novo local à lista de marcadores no mapa (nearbyPlaces)
+      setNearbyPlaces((currentPlaces) => {
+        const placeExists = currentPlaces.some((p) => p.place_id === placeId);
+
+        // Se o local já existe não faz nada para não duplicar
+        if (placeExists) {
+          return currentPlaces;
+        }
+
+        // Se não existe cria um novo objeto de local e o adiciona à lista
+        const newPlaceForMap = {
+          place_id: placeId,
+          geometry: {
+            // O Google API espera funções lat() e lng()
+            location: {
+              lat: () => selectedPlace.lat,
+              lng: () => selectedPlace.lng,
+            },
+          },
+          name: placeDetails?.name || "Local Adicionado",
+          vicinity:
+            placeDetails?.formatted_address || "Endereço não disponível",
+          types: placeDetails?.types || [],
+        };
+
+        return [...currentPlaces, newPlaceForMap];
+      });
+
+      // Salva no localStorage
       try {
         localStorage.setItem(
           "accessibilityData",
-          JSON.stringify({
-            ...accessibilityData,
-            [placeId]: newData,
-          })
+          JSON.stringify(newAccessibilityData)
         );
       } catch (e) {
         console.warn("Não foi possível salvar no localStorage:", e);
@@ -384,7 +468,19 @@ function GoMap() {
     }
   };
 
-  return isLoaded ? (
+  if (loadError) {
+    return <div>Erro ao carregar o Google Maps</div>;
+  }
+
+  if (!isLoaded || !markerIcons) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p>Carregando mapa...</p>
+      </div>
+    );
+  }
+
+  return (
     <GoogleMap
       mapContainerStyle={{ width: "100%", height: "100%" }}
       center={mapCenter}
@@ -403,6 +499,26 @@ function GoMap() {
             <img className="" src={addButtonIcon} alt="Adicionar" />
           </span>
         </button>
+      </div>
+
+      {/* Legenda dos marcadores */}
+      <div className="absolute bottom-5 left-4 z-[1000] bg-white p-4 rounded shadow">
+        <div className="flex items-center mb-2">
+          <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+          <span className="text-sm">Acessível</span>
+        </div>
+        <div className="flex items-center mb-2">
+          <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+          <span className="text-sm">Parcialmente acessível</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+          <span className="text-sm">Sem acessibilidade</span>
+        </div>
+        <div className="flex items-center">
+          <div className="w-4 h-4 rounded-full bg-blue-500 mr-2 mt-2 mb-2"></div>
+          <span className="text-sm">Sua localização</span>
+        </div>
       </div>
 
       {/* Popup de opções para adicionar */}
@@ -479,40 +595,37 @@ function GoMap() {
       </div>
 
       {userLocation && (
-        <Marker
-          position={userLocation}
-          icon={{
-            path: google.maps.SymbolPath.CIRCLE,
-            scale: 8,
-            fillColor: "#4285F4",
-            fillOpacity: 1,
-            strokeWeight: 2,
-            strokeColor: "white",
-          }}
-        />
+        <Marker position={userLocation} icon={markerIcons.user} />
       )}
 
-      {nearbyPlaces.map((place) => (
-        <Marker
-          key={place.place_id}
-          position={{
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng(),
-          }}
-          onClick={() => {
-            setSelectedPlace({
+      {nearbyPlaces.map((place) => {
+        const placeId = place.place_id;
+        const accessibility = placeId ? accessibilityData[placeId] : null;
+        const color = getMarkerColor(accessibility || null);
+
+        return (
+          <Marker
+            key={place.place_id}
+            position={{
               lat: place.geometry.location.lat(),
               lng: place.geometry.location.lng(),
-              placeId: place.place_id,
-            });
-            setPlaceDetails({
-              name: place.name || "Local desconhecido",
-              formatted_address: place.vicinity || "Endereço não disponível",
-              types: place.types,
-            });
-          }}
-        />
-      ))}
+            }}
+            icon={markerIcons[color]}
+            onClick={() => {
+              setSelectedPlace({
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+                placeId: place.place_id,
+              });
+              setPlaceDetails({
+                name: place.name || "Local desconhecido",
+                formatted_address: place.vicinity || "Endereço não disponível",
+                types: place.types,
+              });
+            }}
+          />
+        );
+      })}
 
       {selectedPlace && placeDetails && (
         <InfoWindow
@@ -528,7 +641,6 @@ function GoMap() {
           }}
         >
           <div className="p-3 min-w-[200px]">
-            {/* Carrossel de imagens (apenas se existirem imagens) */}
             {selectedPlace.placeId &&
               accessibilityData[selectedPlace.placeId]?.images &&
               accessibilityData[selectedPlace.placeId].images.length > 0 && (
@@ -610,7 +722,6 @@ function GoMap() {
         </AnimatePresence>
       )}
 
-      {/* Overlay de carregamento durante o salvamento */}
       {isSaving && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[3000]">
           <div className="bg-white p-6 rounded-lg shadow-xl max-w-sm">
@@ -644,10 +755,6 @@ function GoMap() {
         </div>
       )}
     </GoogleMap>
-  ) : (
-    <div className="flex items-center justify-center h-full">
-      <p>Carregando mapa...</p>
-    </div>
   );
 }
 
