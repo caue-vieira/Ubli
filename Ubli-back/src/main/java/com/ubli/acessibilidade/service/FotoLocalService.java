@@ -18,7 +18,7 @@ import com.errors.InternalServerErrorException;
 import com.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IFotoLocalRepository;
 import com.ubli.acessibilidade.interfaces.service.IFotoLocalService;
-import com.ubli.acessibilidade.model.FotoLocal;
+import com.ubli.acessibilidade.model.FotosLocal;
 
 @Service
 public class FotoLocalService implements IFotoLocalService {
@@ -41,7 +41,7 @@ public class FotoLocalService implements IFotoLocalService {
 
                 foto.transferTo(new File(caminho));
 
-                FotoLocal novaFoto = new FotoLocal();
+                FotosLocal novaFoto = new FotosLocal();
                 novaFoto.setIdPontoAcessibilidade(idPontoAcessibilidade);
                 novaFoto.setCaminhoArquivo("storage/" + idPontoAcessibilidade + "/" + nomeArquivo);
 
@@ -54,19 +54,19 @@ public class FotoLocalService implements IFotoLocalService {
 
     @Override
     public List<String> buscaFotosLocal(UUID idPontoAcessibilidade) {
-        List<FotoLocal> fotos = _fotoLocalRepository.findAllByIdPontoAcessibilidade(idPontoAcessibilidade);
+        List<FotosLocal> fotos = _fotoLocalRepository.findAllByIdPontoAcessibilidade(idPontoAcessibilidade);
         if(fotos.isEmpty()) {
             throw new DataNotFoundException(ErrorMessages.NENHUM_REGISTRO_ENCONTRADO.getMensagem());
         }
     
         return fotos.stream()
-            .map(FotoLocal::getCaminhoArquivo)
+            .map(FotosLocal::getCaminhoArquivo)
             .collect(Collectors.toList());
     }
 
     @Override
     public void excluiFotoLocal(UUID idFoto) {
-        FotoLocal foto = _fotoLocalRepository.findById(idFoto).orElseThrow(() -> new DataNotFoundException(ErrorMessages.ARQUIVO_NAO_ENCONTRADO.getMensagem()));
+        FotosLocal foto = _fotoLocalRepository.findById(idFoto).orElseThrow(() -> new DataNotFoundException(ErrorMessages.ARQUIVO_NAO_ENCONTRADO.getMensagem()));
 
         Path caminhoFoto = Paths.get(foto.getCaminhoArquivo());
         try {
@@ -84,13 +84,13 @@ public class FotoLocalService implements IFotoLocalService {
     public void excluiFotoLocalIdPonto(UUID idPontoAcessibilidade) {
         // TALVEZ não seja necessário excluir cada foto uma por uma, apenas o diretório com o id do ponto informado(já que terá um cascade no banco)
         // Encontra todos os registros de fotos com base no id do ponto de acessibilidade;
-        List<FotoLocal> fotos = _fotoLocalRepository.findAllByIdPontoAcessibilidade(idPontoAcessibilidade);
+        List<FotosLocal> fotos = _fotoLocalRepository.findAllByIdPontoAcessibilidade(idPontoAcessibilidade);
         if(fotos.isEmpty()) {
             throw new DataNotFoundException(ErrorMessages.NENHUM_REGISTRO_ENCONTRADO.getMensagem());
         }
 
         // Exclui os arquivos salvos localmente e no banco de dados
-        for(FotoLocal foto : fotos) {
+        for(FotosLocal foto : fotos) {
             Path caminhoFoto = Paths.get(foto.getCaminhoArquivo());
             try {
                 Files.deleteIfExists(caminhoFoto);
