@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+// Importações adicionadas do novo código
+import ImageCarousel from "./ImageCarousel";
+import StarRatingInput from "./StarRatingInput";
+import ReviewCarousel from "./ReviewCarousel";
 
-// As interfaces permanecem as mesmas
+// As interfaces permanecem as mesmas com adições do novo código
 interface AccessibilityFeatures {
   rampa: boolean;
   elevador: boolean;
@@ -14,11 +18,20 @@ interface AccessibilityFeatures {
   braille: boolean;
 }
 
+interface PlaceReview {
+  id: string;
+  author: string;
+  rating: number;
+  comment: string;
+  date: string;
+}
+
 interface AccessibilityData {
   features: AccessibilityFeatures;
   observations: string;
   tipo: string;
   images?: string[];
+  reviews?: PlaceReview[]; // Adicionado do novo código
 }
 
 interface SidebarFormProps {
@@ -38,6 +51,9 @@ interface SidebarFormProps {
   existingData?: AccessibilityData | null;
   onSave: (placeId: string, data: AccessibilityData) => Promise<boolean | void>;
 }
+
+// Simulação de um usuário logado para os reviews (adicionado do novo código)
+const CURRENT_USER = { id: "user_123", name: "Você" };
 
 const SidebarForm: React.FC<SidebarFormProps> = ({
   onClose,
@@ -69,14 +85,17 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
 
-  // --- CORREÇÃO PRINCIPAL: useEffect robusto ---
+  // Estados adicionados do novo código
+  const [currentUserRating, setCurrentUserRating] = useState(0);
+  const [currentUserComment, setCurrentUserComment] = useState("");
+
   useEffect(() => {
     // Adicionei logs para depuração. Verifique o console do navegador (F12).
     console.log("[SidebarForm] useEffect executado.");
     console.log("[SidebarForm] Dados existentes recebidos:", existingData);
 
     if (placeDetails) {
-      // 1. Começa com um estado base a partir dos detalhes do local
+      // Começa com um estado base a partir dos detalhes do local
       let formState = {
         ...getInitialFormData(),
         nome: placeDetails.name || "",
@@ -84,17 +103,24 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         tipo: determinePlaceType(placeDetails.types),
       };
 
-      // 2. Se houver dados salvos, eles SOBRESCREVEM o estado base.
+      // Se houver dados salvos, eles SOBRESCREVEM o estado base.
       if (existingData) {
         console.log("[SidebarForm] Mesclando dados existentes no formulário.");
         formState = {
           ...formState,
           tipo: existingData.tipo,
-          acessibilidades: existingData.features, // << Esta é a correção chave para os checkboxes
+          acessibilidades: existingData.features,
           observacoes: existingData.observations,
         };
         // Define as imagens existentes para preview
         setImagePreviews(existingData.images || []);
+
+        // Adicionado do novo código: Popula o review do usuário atual, se existir
+        const userReview = existingData.reviews?.find(
+          (r) => r.author === CURRENT_USER.name
+        );
+        setCurrentUserRating(userReview?.rating || 0);
+        setCurrentUserComment(userReview?.comment || "");
       } else {
         // Garante que, se não houver dados, as imagens de preview sejam limpas
         setImagePreviews([]);
@@ -180,7 +206,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     );
   };
 
-  // --- CORREÇÃO PRINCIPAL: handleSubmit simplificado e correto ---
+  // handleSubmit modificado para incluir as melhorias do novo código
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLocation) return alert("Nenhum local selecionado.");
@@ -192,11 +218,29 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
 
     setIsSaving(true);
     try {
+      // Adicionado tratamento de reviews do novo código
+      const otherReviews =
+        existingData?.reviews?.filter((r) => r.author !== CURRENT_USER.name) ||
+        [];
+      const reviews = [...otherReviews];
+
+      // Adiciona o review do usuário atual apenas se ele deu uma nota
+      if (currentUserRating > 0) {
+        reviews.push({
+          id: `review_${Date.now()}`,
+          author: CURRENT_USER.name,
+          rating: currentUserRating,
+          comment: currentUserComment,
+          date: new Date().toISOString(),
+        });
+      }
+
       const dataToSave: AccessibilityData = {
         features: formData.acessibilidades,
         observations: formData.observacoes,
         tipo: formData.tipo,
-        images: imagePreviews, // << Apenas usa o estado de previews, que já está correto
+        images: imagePreviews,
+        reviews: reviews, // Adicionado do novo código
       };
 
       console.log("[SidebarForm] Salvando dados:", dataToSave);
@@ -220,7 +264,6 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     "Outro",
   ];
 
-  // O JSX permanece o mesmo
   return (
     <motion.div
       initial={{ x: "100%" }}
@@ -240,6 +283,14 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           &times;
         </button>
       </div>
+
+      {/* Adicionado ImageCarousel do novo código */}
+      {imagePreviews.length > 0 && (
+        <ImageCarousel
+          images={imagePreviews}
+          className="mb-4 max-h-52 rounded-lg"
+        />
+      )}
 
       <div className="mb-4 p-4 bg-gray-100 rounded-lg border">
         <h3 className="font-semibold text-lg text-gray-900">
@@ -302,7 +353,7 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
           {/* Imagens */}
           <div>
             <label className="block mb-1 font-medium text-gray-700">
-              Fotos
+              Fotos do local/Acessibilidade
             </label>
             <input
               type="file"
@@ -348,6 +399,8 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
               placeholder="Informações adicionais..."
             />
           </div>
+
+          {/* Adicionado seção de avaliações do novo código */}
         </div>
 
         {/* Botões de ação */}

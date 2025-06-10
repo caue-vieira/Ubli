@@ -43,9 +43,18 @@ type AccessibilityFeatures = {
   braille: boolean;
 };
 
-type AccessibilityData = {
+// Novo tipo para uma avaliação individual
+export type PlaceReview = {
+  id: string; // ID único da avaliação
+  author: string; // Nome do autor
+  rating: number; // Avaliação de 1 a 5
+  comment: string; // Comentário em texto
+  date: string; // Data da avaliação em formato ISO
+};
+
+export type AccessibilityData = {
   features: AccessibilityFeatures;
-  observations: string;
+  reviews: PlaceReview[];
   tipo: string;
   images?: string[];
 };
@@ -357,18 +366,6 @@ function GoMap() {
     }
   };
 
-  const handleAddWithCurrentLocation = () => {
-    if (userLocation) {
-      setSelectedPlace(userLocation);
-      setPlaceDetails({
-        name: "Minha Localização",
-        formatted_address: "Localização atual do usuário",
-      });
-      setShowSidebar(true);
-      setShowAddOptions(false);
-    }
-  };
-
   const handleAddressSearch = () => {
     if (!addressSearchInputRef.current?.value || !map) return;
     const geocoder = new google.maps.Geocoder();
@@ -470,10 +467,10 @@ function GoMap() {
       options={mapOptions}
     >
       {/* Botão flutuante para adicionar novo local */}
-      <div className="absolute bottom-5 right-20 z-[1000]">
+      <div className="absolute bottom-40 right-2 z-[1000]">
         <button
           onClick={() => setShowAddOptions(!showAddOptions)}
-          className="p-1 w-15 h-15 bg-white text-black rounded-full shadow-lg hover:bg-gray-200 transition flex items-center justify-center"
+          className="p-1 w-12 h-12 bg-white text-black rounded-full shadow-lg hover:bg-gray-200 transition flex items-center justify-center"
         >
           <span className="material-icons text-2x1">
             <img className="" src={addButtonIcon} alt="Adicionar" />
@@ -506,21 +503,12 @@ function GoMap() {
 
       {/* Popup de opções para adicionar */}
       {showAddOptions && (
-        <div className="absolute bottom-20 right-6 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
+        <div className="absolute bottom-30 right-15 z-[1000] bg-white p-4 rounded-lg shadow-lg w-64">
           {!showAddressSearch ? (
             <>
               <h3 className="font-semibold mb-3 text-gray-800">
                 Adicionar acessibilidade
               </h3>
-              <button
-                onClick={handleAddWithCurrentLocation}
-                className="w-full mb-2 p-2 bg-blue-50 text-blue-700 rounded hover:bg-blue-100 flex items-center text-sm"
-                disabled={!userLocation}
-              >
-                <span className="material-icons mr-2 text-base">
-                  Localização atual
-                </span>
-              </button>
               <button
                 onClick={() => setShowAddressSearch(true)}
                 className="w-full p-2 bg-gray-50 text-gray-700 rounded hover:bg-gray-100 flex items-center text-sm"
