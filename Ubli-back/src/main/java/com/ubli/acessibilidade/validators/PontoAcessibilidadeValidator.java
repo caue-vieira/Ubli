@@ -1,4 +1,4 @@
-package com.validators;
+package com.ubli.acessibilidade.validators;
 
 import com.ubli.acessibilidade.model.PontoAcessibilidade;
 

@@ -1,10 +1,12 @@
 package com.ubli.acessibilidade.controller;
 
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -15,12 +17,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.errors.DataNotFoundException;
-import com.errors.EmptyFieldException;
-import com.errors.InvalidFieldException;
-import com.errors.messages.ErrorMessages;
+import com.ubli.acessibilidade.dto.LoginRequestDTO;
+import com.ubli.acessibilidade.dto.LoginResponseDTO;
+import com.ubli.acessibilidade.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.EmptyFieldException;
+import com.ubli.acessibilidade.errors.InvalidFieldException;
+import com.ubli.acessibilidade.errors.messages.ErrorMessages;
+import com.ubli.acessibilidade.interfaces.repository.IUsuarioRepository;
 import com.ubli.acessibilidade.interfaces.service.IUsuarioService;
 import com.ubli.acessibilidade.model.Usuario;
+import com.ubli.acessibilidade.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -31,7 +37,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 // Apenas define o nome da tag no Swagger
 @Tag(name = "Usuários")
-// Defne este controller como sendo um RestController, permitindo ao JPA reconhecê-lo como um controller
+// Define este controller como sendo um RestController, permitindo ao JPA reconhecê-lo como um controller
 @RestController
 // Define a rota principal do controller (todas as rotas das funções iniciarão com /usuario/...)
 @RequestMapping("/usuario")
@@ -40,6 +46,35 @@ public class UsuariosController {
     // Faz a criação automática do contrutor
     @Autowired
     private IUsuarioService _usuarioService;
+    @Autowired
+    private IUsuarioRepository _iUsuarioRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
+    private AuthService _authService;
+
+    @ResponseStatus(code = HttpStatus.OK)
+    @Operation(summary = "Faz login do usuário")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "201")
+    })
+    @PostMapping("/login")
+    public ResponseEntity<Object> login(@RequestBody LoginRequestDTO loginRequest) {
+        Optional<Usuario> usuarioOpt = _iUsuarioRepository.findByEmail(loginRequest.email);
+
+        if (usuarioOpt.isEmpty()) {
+            return ResponseEntity.status(401).body("Credenciais inválidas.");
+        }
+
+        Usuario usuario = usuarioOpt.get();
+
+        if (!passwordEncoder.matches(loginRequest.senha, usuario.getSenha())) {
+            return ResponseEntity.status(401).body("Credenciais inválidas.");
+        }
+
+        String token = _authService.generateToken(usuario);
+        return ResponseEntity.ok(new LoginResponseDTO(token));
+    }
 
     /*
      * A anotação Operation edita a descrição da rota no Swagger
@@ -126,6 +161,7 @@ public class UsuariosController {
         }
     }
 
+    @ResponseStatus(code = HttpStatus.NO_CONTENT)
     @Operation(summary = "Exclui um usuário no banco de dados", description = "Endpoint para exclusão de um usuário no banco de dados com base no ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", content = @Content),

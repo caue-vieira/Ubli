@@ -1,8 +1,8 @@
-package com.validators;
+package com.ubli.acessibilidade.validators;
 
-import com.errors.EmptyFieldException;
-import com.errors.InvalidFieldException;
-import com.errors.messages.ErrorMessages;
+import com.ubli.acessibilidade.errors.EmptyFieldException;
+import com.ubli.acessibilidade.errors.InvalidFieldException;
+import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 
 public class GenericValidator {
     public static void ValidateStringNotEmptyOrNull(String string, String fieldName) {

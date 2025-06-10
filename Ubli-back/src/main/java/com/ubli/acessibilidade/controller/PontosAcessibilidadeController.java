@@ -18,10 +18,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.errors.DataNotFoundException;
-import com.errors.EmptyFieldException;
-import com.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
+import com.ubli.acessibilidade.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.EmptyFieldException;
+import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.service.IFotoLocalService;
 import com.ubli.acessibilidade.interfaces.service.IPontoAcessibilidadeService;
 import com.ubli.acessibilidade.model.PontoAcessibilidade;

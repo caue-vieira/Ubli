@@ -5,12 +5,12 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.errors.DataNotFoundException;
-import com.errors.messages.ErrorMessages;
+import com.ubli.acessibilidade.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IUsuarioRepository;
 import com.ubli.acessibilidade.interfaces.service.IUsuarioService;
 import com.ubli.acessibilidade.model.Usuario;
-import com.validators.UsuarioValidator;
+import com.ubli.acessibilidade.validators.UsuarioValidator;
 
 // Define a classe como um Service, peritindo ao JPA reconhecê-lo
 @Service

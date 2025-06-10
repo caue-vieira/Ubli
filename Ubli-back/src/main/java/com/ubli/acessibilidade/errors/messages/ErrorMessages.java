@@ -1,4 +1,4 @@
-package com.errors.messages;
+package com.ubli.acessibilidade.errors.messages;
 
 public enum ErrorMessages {
     EMAIL_INVALIDO("O email inserido não é válido"),

@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.DataNotFoundException;
 import com.ubli.acessibilidade.interfaces.service.IFotoLocalService;
 
 import io.swagger.v3.oas.annotations.Operation;

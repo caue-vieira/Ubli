@@ -1,6 +1,6 @@
-package com.validators;
+package com.ubli.acessibilidade.validators;
 
-import com.errors.InvalidFieldException;
+import com.ubli.acessibilidade.errors.InvalidFieldException;
 import com.ubli.acessibilidade.model.Usuario;
 
 public class UsuarioValidator {
