@@ -10,6 +10,7 @@ public interface IPontoAcessibilidadeService {
     public PontoAcessibilidade cadastraPontoAcessibilidade(PontoAcessibilidadeDTO pontoAcessibilidade);
     public PontoAcessibilidade editPontoAcessibilidade(PontoAcessibilidadeDTO pontoAcessibilidadeDto, UUID id);
     public List<PontoAcessibilidadeDTO> buscaPontosAcessibilidade();
+    public List<PontoAcessibilidadeDTO> buscaPontoAcessibilidadeFiltro(int filtro);
     public PontoAcessibilidade buscaPontoAcessibilidadeId(UUID id);
     public void excluiPontoAcessibilidadeId(UUID id);
 }

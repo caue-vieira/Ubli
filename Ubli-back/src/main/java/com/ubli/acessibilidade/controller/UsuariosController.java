@@ -19,9 +19,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ubli.acessibilidade.dto.LoginRequestDTO;
 import com.ubli.acessibilidade.dto.LoginResponseDTO;
-import com.ubli.acessibilidade.errors.DataNotFoundException;
-import com.ubli.acessibilidade.errors.EmptyFieldException;
-import com.ubli.acessibilidade.errors.InvalidFieldException;
+import com.ubli.acessibilidade.errors.ErrorResponseDTO;
+import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
+import com.ubli.acessibilidade.errors.exceptions.EmptyFieldException;
+import com.ubli.acessibilidade.errors.exceptions.InvalidFieldException;
 import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IUsuarioRepository;
 import com.ubli.acessibilidade.interfaces.service.IUsuarioService;
@@ -56,7 +57,10 @@ public class UsuariosController {
     @ResponseStatus(code = HttpStatus.OK)
     @Operation(summary = "Faz login do usuário")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "201")
+        @ApiResponse(responseCode = "201", content = @Content),
+        @ApiResponse(responseCode = "401", description = ErrorMessages.USUARIO_OU_SENHA_INCORRETOS_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        ))
     })
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody LoginRequestDTO loginRequest) {
@@ -86,8 +90,12 @@ public class UsuariosController {
             mediaType = "application/json",
             schema = @Schema(implementation = Usuario.class)
         )),
-        @ApiResponse(responseCode = "400", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "400", description = ErrorMessages.CAMPO_VAZIO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @PostMapping("/cadastrar")
     public ResponseEntity<Object> cadastraUsuario(@RequestBody Usuario usuario) {
@@ -95,7 +103,7 @@ public class UsuariosController {
             Usuario _usuario = _usuarioService.cadastrarUsuario(usuario);
             return ResponseEntity.status(HttpStatus.CREATED).body(_usuario);
         } catch(EmptyFieldException | InvalidFieldException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -120,8 +128,12 @@ public class UsuariosController {
             mediaType = "application/json",
             schema = @Schema(implementation = Usuario.class)
         )),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.USUARIO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @GetMapping("/{id}")
     public ResponseEntity<Object> buscaUsuarioId(@PathVariable UUID id) {
@@ -129,7 +141,7 @@ public class UsuariosController {
             Usuario usuario = _usuarioService.buscaUsuarioId(id);
             return ResponseEntity.ok(usuario);
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -143,9 +155,15 @@ public class UsuariosController {
             mediaType = "application/json",
             schema = @Schema(implementation = Usuario.class)
         )),
-        @ApiResponse(responseCode = "400", content = @Content),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "400", description = ErrorMessages.CAMPO_VAZIO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.USUARIO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @PutMapping("/{id}/editar")
     public ResponseEntity<Object> editaUsuario(@PathVariable UUID id, @RequestBody Usuario usuario) {
@@ -153,9 +171,9 @@ public class UsuariosController {
             Usuario _usuario = _usuarioService.editaUsuario(usuario, id);
             return ResponseEntity.status(HttpStatus.OK).body(_usuario);
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(EmptyFieldException | InvalidFieldException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -165,8 +183,12 @@ public class UsuariosController {
     @Operation(summary = "Exclui um usuário no banco de dados", description = "Endpoint para exclusão de um usuário no banco de dados com base no ID")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", content = @Content),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.USUARIO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @DeleteMapping("/{id}/excluir")
     public ResponseEntity<String> excluiUsuario(@PathVariable UUID id) {

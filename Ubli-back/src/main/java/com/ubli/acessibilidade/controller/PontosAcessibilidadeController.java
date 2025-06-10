@@ -19,8 +19,9 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
-import com.ubli.acessibilidade.errors.DataNotFoundException;
-import com.ubli.acessibilidade.errors.EmptyFieldException;
+import com.ubli.acessibilidade.errors.ErrorResponseDTO;
+import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
+import com.ubli.acessibilidade.errors.exceptions.EmptyFieldException;
 import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.service.IFotoLocalService;
 import com.ubli.acessibilidade.interfaces.service.IPontoAcessibilidadeService;
@@ -52,8 +53,12 @@ public class PontosAcessibilidadeController {
             mediaType = "application/json",
             schema = @Schema(implementation = PontoAcessibilidade.class)
         )),
-        @ApiResponse(responseCode = "400", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "400", description = ErrorMessages.CAMPO_VAZIO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @PostMapping(value = "/adicionar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> cadastraPontoAcessibilidade(
@@ -70,7 +75,7 @@ public class PontosAcessibilidadeController {
             _fotoLocalService.adicionaFotoLocal(fotos, idPonto);
             return ResponseEntity.status(HttpStatus.CREATED).body(_pontoAcessibilidade);
         } catch(EmptyFieldException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -83,8 +88,12 @@ public class PontosAcessibilidadeController {
             mediaType = "application/json",
             array = @ArraySchema(schema = @Schema(implementation = PontoAcessibilidadeDTO.class))
         )),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.NENHUM_REGISTRO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @GetMapping("/buscar")
     public ResponseEntity<Object> buscaPontosAcessibilidade() {
@@ -93,7 +102,33 @@ public class PontosAcessibilidadeController {
             List<PontoAcessibilidadeDTO> pontosAcessibilidade = _pontoAcessibilidadeService.buscaPontosAcessibilidade();
             return ResponseEntity.status(HttpStatus.OK).body(pontosAcessibilidade);
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
+        } catch(Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+        }
+    }
+
+    @ResponseStatus(HttpStatus.OK)
+    @Operation(summary = "Busca os pontos de acessibilidade por filtro", description = "Endpoint para busca de todos os pontos de acessibilidade por filtro no banco de dados")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", content = @Content(
+            mediaType = "application/json",
+            array = @ArraySchema(schema = @Schema(implementation = PontoAcessibilidadeDTO.class))
+        )),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.NENHUM_REGISTRO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+    })
+    @GetMapping("/buscar/{filtro}")
+    public ResponseEntity<Object> buscaPontosAcessibilidadeFiltro(@PathVariable int filtro) {
+        try {
+            List<PontoAcessibilidadeDTO> pontosAcessibilidade = _pontoAcessibilidadeService.buscaPontoAcessibilidadeFiltro(filtro);
+            return ResponseEntity.status(HttpStatus.OK).body(pontosAcessibilidade);
+        } catch(DataNotFoundException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -106,8 +141,12 @@ public class PontosAcessibilidadeController {
             mediaType = "application/json",
             schema = @Schema(implementation = PontoAcessibilidade.class)
         )),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.PONTO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @GetMapping("/buscar/{id}")
     public ResponseEntity<Object> buscaPontoAcessibilidadeId(@PathVariable UUID id) {
@@ -124,7 +163,7 @@ public class PontosAcessibilidadeController {
             
             return ResponseEntity.status(HttpStatus.OK).body(pontoAcessibilidade);
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -137,10 +176,18 @@ public class PontosAcessibilidadeController {
             mediaType = "application/json",
             schema = @Schema(implementation = PontoAcessibilidade.class)
         )),
-        @ApiResponse(responseCode = "400", content = @Content),
-        @ApiResponse(responseCode = "403", content = @Content),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "400", description = ErrorMessages.CAMPO_VAZIO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "403", description = ErrorMessages.ACAO_PROIBIDA_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.PONTO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @PutMapping("/{id}/editar")
     public ResponseEntity<Object> editaPontoAcessibilidade(@PathVariable UUID id, @RequestBody PontoAcessibilidadeDTO pontoAcessibilidadeDto) {
@@ -149,9 +196,9 @@ public class PontosAcessibilidadeController {
             PontoAcessibilidade _pontoAcessibilidade = _pontoAcessibilidadeService.editPontoAcessibilidade(pontoAcessibilidadeDto, id);
             return ResponseEntity.status(HttpStatus.OK).body(_pontoAcessibilidade);
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(EmptyFieldException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }
@@ -161,8 +208,12 @@ public class PontosAcessibilidadeController {
     @Operation(summary = "Exclui um ponto de acessibilidade", description = "Endpoint para a exclusão de um ponto de acessibilidade no banco de dados")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "204", content = @Content),
-        @ApiResponse(responseCode = "404", content = @Content),
-        @ApiResponse(responseCode = "500", content = @Content),
+        @ApiResponse(responseCode = "404", description = ErrorMessages.PONTO_NAO_ENCONTRADO_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
+        @ApiResponse(responseCode = "500", description = ErrorMessages.ERRO_INTERNO_SERVIDOR_STRING, content = @Content(
+            schema = @Schema(implementation = ErrorResponseDTO.class)
+        )),
     })
     @DeleteMapping("/{id}/excluir")
     public ResponseEntity<Object> excluiPontoAcessibilidade(@PathVariable("id") UUID idPontoAcessibilidade) {
@@ -172,7 +223,7 @@ public class PontosAcessibilidadeController {
             _fotoLocalService.excluiFotoLocalIdPonto(idPontoAcessibilidade);
             return ResponseEntity.noContent().build();
         } catch(DataNotFoundException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
         }

@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
-import com.ubli.acessibilidade.errors.DataNotFoundException;
+import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
 import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IPontoAcessibilidadeRepository;
 import com.ubli.acessibilidade.interfaces.service.IPontoAcessibilidadeService;
@@ -53,7 +53,21 @@ public class PontoAcessibilidadeService implements IPontoAcessibilidadeService {
         }
         // Converte a lista de model PontoAcessibilidade em seu DTO e retorna
         List<PontoAcessibilidadeDTO> pontoAcessibilidadeDtos = new ArrayList<>();
-        for (PontoAcessibilidade pontoAcessibilidade : pontoAcessibilidades) {
+        for(PontoAcessibilidade pontoAcessibilidade : pontoAcessibilidades) {
+            pontoAcessibilidadeDtos.add(new PontoAcessibilidadeDTO(pontoAcessibilidade));
+        }
+        return pontoAcessibilidadeDtos;
+    }
+
+    @Override
+    public List<PontoAcessibilidadeDTO> buscaPontoAcessibilidadeFiltro(int filtro) {
+        List<PontoAcessibilidade> pontoAcessibilidades = _pontoAcessibilidadeRepository.findByFiltro(filtro);
+        if(pontoAcessibilidades.isEmpty()) {
+            throw new DataNotFoundException(ErrorMessages.NENHUM_REGISTRO_ENCONTRADO.getMensagem());
+        }
+
+        List<PontoAcessibilidadeDTO> pontoAcessibilidadeDtos = new ArrayList<>();
+        for(PontoAcessibilidade pontoAcessibilidade : pontoAcessibilidades) {
             pontoAcessibilidadeDtos.add(new PontoAcessibilidadeDTO(pontoAcessibilidade));
         }
         return pontoAcessibilidadeDtos;

@@ -13,8 +13,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.ubli.acessibilidade.errors.DataNotFoundException;
-import com.ubli.acessibilidade.errors.InternalServerErrorException;
+import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
+import com.ubli.acessibilidade.errors.exceptions.InternalServerErrorException;
 import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IFotoLocalRepository;
 import com.ubli.acessibilidade.interfaces.service.IFotoLocalService;

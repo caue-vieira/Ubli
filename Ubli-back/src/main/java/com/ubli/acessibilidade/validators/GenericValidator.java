@@ -1,7 +1,7 @@
 package com.ubli.acessibilidade.validators;
 
-import com.ubli.acessibilidade.errors.EmptyFieldException;
-import com.ubli.acessibilidade.errors.InvalidFieldException;
+import com.ubli.acessibilidade.errors.exceptions.EmptyFieldException;
+import com.ubli.acessibilidade.errors.exceptions.InvalidFieldException;
 import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 
 public class GenericValidator {
