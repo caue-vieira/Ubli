@@ -53,10 +53,12 @@ export type PlaceReview = {
 };
 
 export type AccessibilityData = {
-  features: AccessibilityFeatures;
-  reviews: PlaceReview[];
-  tipo: string;
-  images?: string[];
+  descricao: string,
+  classificacao_local: number,
+  latitude: number,
+  longitude: number,
+  id_usuario: string
+  fotos_local: string[];
 };
 
 function GoMap() {
@@ -392,59 +394,59 @@ function GoMap() {
   };
 
   const handleSaveData = async (placeId: string, data: AccessibilityData) => {
-    if (!selectedPlace) {
-      console.error("Nenhum local selecionado para salvar.");
-      return false;
-    }
-    setIsSaving(true);
-    try {
-      const hasLargeImages = data.images?.some(
-        (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024
-      );
-      if (hasLargeImages) {
-        throw new Error("Algumas imagens são muito grandes (limite de 5MB)");
-      }
-      const newData = {
-        ...data,
-        images: data.images?.filter((img) => img) || [],
-      };
-      const newAccessibilityData = { ...accessibilityData, [placeId]: newData };
-      setAccessibilityData(newAccessibilityData);
-      setNearbyPlaces((currentPlaces) => {
-        const placeExists = currentPlaces.some((p) => p.place_id === placeId);
-        if (placeExists) {
-          return currentPlaces;
-        }
-        const newPlaceForMap = {
-          place_id: placeId,
-          geometry: {
-            location: {
-              lat: () => selectedPlace.lat,
-              lng: () => selectedPlace.lng,
-            },
-          },
-          name: placeDetails?.name || "Local Adicionado",
-          vicinity:
-            placeDetails?.formatted_address || "Endereço não disponível",
-          types: placeDetails?.types || [],
-        };
-        return [...currentPlaces, newPlaceForMap];
-      });
-      try {
-        localStorage.setItem(
-          "accessibilityData",
-          JSON.stringify(newAccessibilityData)
-        );
-      } catch (e) {
-        console.warn("Não foi possível salvar no localStorage:", e);
-      }
-      return true;
-    } catch (error) {
-      console.error("Erro ao salvar dados:", error);
-      throw error;
-    } finally {
-      setIsSaving(false);
-    }
+    // if (!selectedPlace) {
+    //   console.error("Nenhum local selecionado para salvar.");
+    //   return false;
+    // }
+    // setIsSaving(true);
+    // try {
+    //   const hasLargeImages = data.fotos_local?.some(
+    //     (img) => img.startsWith("data:") && img.length > 5 * 1024 * 1024
+    //   );
+    //   if (hasLargeImages) {
+    //     throw new Error("Algumas imagens são muito grandes (limite de 5MB)");
+    //   }
+    //   const newData = {
+    //     ...data,
+    //     fotos_local: data.fotos_local?.filter((img) => img) || [],
+    //   };
+    //   const newAccessibilityData = { ...accessibilityData, [placeId]: newData };
+    //   setAccessibilityData(newAccessibilityData);
+    //   setNearbyPlaces((currentPlaces) => {
+    //     const placeExists = currentPlaces.some((p) => p.place_id === placeId);
+    //     if (placeExists) {
+    //       return currentPlaces;
+    //     }
+    //     const newPlaceForMap = {
+    //       place_id: placeId,
+    //       geometry: {
+    //         location: {
+    //           lat: () => selectedPlace.lat,
+    //           lng: () => selectedPlace.lng,
+    //         },
+    //       },
+    //       name: placeDetails?.name || "Local Adicionado",
+    //       vicinity:
+    //         placeDetails?.formatted_address || "Endereço não disponível",
+    //       types: placeDetails?.types || [],
+    //     };
+    //     return [...currentPlaces, newPlaceForMap];
+    //   });
+    //   try {
+    //     localStorage.setItem(
+    //       "accessibilityData",
+    //       JSON.stringify(newAccessibilityData)
+    //     );
+    //   } catch (e) {
+    //     console.warn("Não foi possível salvar no localStorage:", e);
+    //   }
+    //   return true;
+    // } catch (error) {
+    //   console.error("Erro ao salvar dados:", error);
+    //   throw error;
+    // } finally {
+    //   setIsSaving(false);
+    // }
   };
 
   if (loadError) return <div>Erro ao carregar o Google Maps</div>;

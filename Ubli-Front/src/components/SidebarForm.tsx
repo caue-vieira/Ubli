@@ -2,38 +2,17 @@ import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 // Importações adicionadas do novo código
 import ImageCarousel from "./ImageCarousel";
-import StarRatingInput from "./StarRatingInput";
-import ReviewCarousel from "./ReviewCarousel";
+import { AccessibilityData } from "./maps/GoMap";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "./ui/form";
+import { Input } from "./ui/input";
+import { Select, SelectContent, SelectItem } from "./ui/select";
+import { SelectTrigger } from "@radix-ui/react-select";
+import { Textarea } from "./ui/textarea";
 
 // As interfaces permanecem as mesmas com adições do novo código
-interface AccessibilityFeatures {
-  rampa: boolean;
-  elevador: boolean;
-  banheiro_acessivel: boolean;
-  sinalizacao_tatil: boolean;
-  vaga_especial: boolean;
-  piso_tatil: boolean;
-  acesso_cadeirantes: boolean;
-  audio_descricao: boolean;
-  braille: boolean;
-}
-
-interface PlaceReview {
-  id: string;
-  author: string;
-  rating: number;
-  comment: string;
-  date: string;
-}
-
-interface AccessibilityData {
-  features: AccessibilityFeatures;
-  observations: string;
-  tipo: string;
-  images?: string[];
-  reviews?: PlaceReview[]; // Adicionado do novo código
-}
-
 interface SidebarFormProps {
   onClose: () => void;
   selectedLocation?: {
@@ -52,8 +31,12 @@ interface SidebarFormProps {
   onSave: (placeId: string, data: AccessibilityData) => Promise<boolean | void>;
 }
 
-// Simulação de um usuário logado para os reviews (adicionado do novo código)
-const CURRENT_USER = { id: "user_123", name: "Você" };
+const pontoFormSchema = z.object({
+    descricao: z.string().min(5),
+    endereco: z.string().min(8),
+    acessibilidades: z.array(z.string()),
+    tipo_estabelecimento: z.number().min(1),
+})
 
 const SidebarForm: React.FC<SidebarFormProps> = ({
   onClose,
@@ -62,11 +45,22 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
   existingData,
   onSave,
 }) => {
+    const pontoForm = useForm<z.infer<typeof pontoFormSchema>>({
+        resolver: zodResolver(pontoFormSchema),
+        defaultValues: {
+            descricao: "",
+            endereco: "",
+            acessibilidades: [],
+            tipo_estabelecimento: 0
+        }
+    })
   // Estado inicial padrão e vazio para o formulário
   const getInitialFormData = () => ({
-    nome: "",
-    endereco: "",
-    tipo: "",
+    descricao: "",
+    latidude: "",
+    longitude: "",
+    classificacao_local: 0,
+    id_usuario: "",
     acessibilidades: {
       rampa: false,
       elevador: false,
@@ -78,16 +72,11 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
       audio_descricao: false,
       braille: false,
     },
-    observacoes: "",
   });
 
   const [formData, setFormData] = useState(getInitialFormData());
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [isSaving, setIsSaving] = useState(false);
-
-  // Estados adicionados do novo código
-  const [currentUserRating, setCurrentUserRating] = useState(0);
-  const [currentUserComment, setCurrentUserComment] = useState("");
 
   useEffect(() => {
     // Adicionei logs para depuração. Verifique o console do navegador (F12).
@@ -98,9 +87,6 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
       // Começa com um estado base a partir dos detalhes do local
       let formState = {
         ...getInitialFormData(),
-        nome: placeDetails.name || "",
-        endereco: getCompleteAddress(placeDetails),
-        tipo: determinePlaceType(placeDetails.types),
       };
 
       // Se houver dados salvos, eles SOBRESCREVEM o estado base.
@@ -108,19 +94,11 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         console.log("[SidebarForm] Mesclando dados existentes no formulário.");
         formState = {
           ...formState,
-          tipo: existingData.tipo,
-          acessibilidades: existingData.features,
-          observacoes: existingData.observations,
+          classificacao_local: existingData.classificacao_local,
+          descricao: existingData.descricao,
         };
         // Define as imagens existentes para preview
-        setImagePreviews(existingData.images || []);
-
-        // Adicionado do novo código: Popula o review do usuário atual, se existir
-        const userReview = existingData.reviews?.find(
-          (r) => r.author === CURRENT_USER.name
-        );
-        setCurrentUserRating(userReview?.rating || 0);
-        setCurrentUserComment(userReview?.comment || "");
+        setImagePreviews(existingData.fotos_local || []);
       } else {
         // Garante que, se não houver dados, as imagens de preview sejam limpas
         setImagePreviews([]);
@@ -218,29 +196,13 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
 
     setIsSaving(true);
     try {
-      // Adicionado tratamento de reviews do novo código
-      const otherReviews =
-        existingData?.reviews?.filter((r) => r.author !== CURRENT_USER.name) ||
-        [];
-      const reviews = [...otherReviews];
-
-      // Adiciona o review do usuário atual apenas se ele deu uma nota
-      if (currentUserRating > 0) {
-        reviews.push({
-          id: `review_${Date.now()}`,
-          author: CURRENT_USER.name,
-          rating: currentUserRating,
-          comment: currentUserComment,
-          date: new Date().toISOString(),
-        });
-      }
-
       const dataToSave: AccessibilityData = {
-        features: formData.acessibilidades,
-        observations: formData.observacoes,
-        tipo: formData.tipo,
-        images: imagePreviews,
-        reviews: reviews, // Adicionado do novo código
+        descricao: formData.descricao,
+        classificacao_local: formData.classificacao_local,
+        latitude: 0,
+        longitude: 0,
+        id_usuario: "0",
+        fotos_local: imagePreviews,
       };
 
       console.log("[SidebarForm] Salvando dados:", dataToSave);
@@ -263,6 +225,10 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
     "Parque/Praça",
     "Outro",
   ];
+
+  function onPontoSave(values: z.infer<typeof pontoFormSchema>) {
+    console.log(values);
+  }
 
   return (
     <motion.div
@@ -298,6 +264,54 @@ const SidebarForm: React.FC<SidebarFormProps> = ({
         </h3>
         <p className="text-sm text-gray-600">{formData.endereco}</p>
       </div>
+
+      <Form {...pontoForm}>
+        <form onSubmit={pontoForm.handleSubmit(onPontoSave)}>
+            <FormField 
+                control={pontoForm.control}
+                name="endereco"
+                render={({field}) => (
+                    <FormItem>
+                        <FormLabel>Tipo de Estabelecimento</FormLabel>
+                        <FormControl>
+                            <Select {...field}>
+                                <SelectTrigger>Selecione</SelectTrigger>
+                                <SelectContent>
+                                    {tiposEstabelecimento.map((tipoEstabelecimento, index) => (
+                                        <SelectItem value={String(index)}>
+                                            {tipoEstabelecimento}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
+            {/* 
+            Adicionar componente checkbox shadcn
+            <FormField 
+                control={pontoForm.control}
+                name="acessibilidades"
+                render={}
+            /> */}
+            <FormField 
+                control={pontoForm.control}
+                name="descricao"
+                render={({field}) => (
+                    <FormItem>
+                        <FormLabel>Descrição</FormLabel>
+                        <FormControl>
+                            <Textarea placeholder="Descrição" {...field}></Textarea>
+                        </FormControl>
+                    </FormItem>
+                )}
+            />
+            {/**
+             * Faltam: "endereco" e "acessibilidades"
+             */}
+        </form>
+      </Form>
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col min-h-0">
         <div className="space-y-5 flex-1 overflow-y-auto pr-3">
