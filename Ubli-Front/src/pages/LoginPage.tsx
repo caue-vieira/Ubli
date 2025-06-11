@@ -18,6 +18,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Input } from "@/components/ui/input";
 import logo from "../images/logo-completo.png";
 import { Button } from "@/components/ui/button";
+import { getUbliAcessibilidadeUrbana } from "@/api/generated/ubliAcessibilidadeUrbana";
 
 const registerFormSchema = z.object({
   usuario: z.string().min(2),
@@ -31,12 +32,30 @@ const loginFormSchema = z.object({
   senha: z.string().min(8),
 });
 
-function onRegister(values: z.infer<typeof registerFormSchema>) {
+async function onRegister(values: z.infer<typeof registerFormSchema>) {
+  const { cadastraUsuario } = getUbliAcessibilidadeUrbana();
+  const usuario = {
+    nome: values.usuario,
+    email: values.email,
+    senha: values.senha,
+    cpf: values.cpf,
+    foto_perfil: null
+  }
+  await cadastraUsuario(usuario).then(
+    
+  ).catch(error => console.log(error.response));
   console.log(values);
 }
 
-function onLogin(values: z.infer<typeof loginFormSchema>) {
-  console.log(values);
+async function onLogin(values: z.infer<typeof loginFormSchema>) {
+  const { login } = getUbliAcessibilidadeUrbana();
+  const usuario = {
+    email: values.email,
+    senha: values.senha,
+  }
+  await login(usuario).then(
+    // Redirecionar o usuário para a tela principal
+  ).catch(error => console.log(error.message));
 }
 
 function Login() {

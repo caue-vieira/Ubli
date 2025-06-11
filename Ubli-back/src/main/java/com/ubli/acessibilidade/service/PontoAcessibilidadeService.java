@@ -60,8 +60,8 @@ public class PontoAcessibilidadeService implements IPontoAcessibilidadeService {
     }
 
     @Override
-    public List<PontoAcessibilidadeDTO> buscaPontoAcessibilidadeFiltro(int filtro) {
-        List<PontoAcessibilidade> pontoAcessibilidades = _pontoAcessibilidadeRepository.findByFiltro(filtro);
+    public List<PontoAcessibilidadeDTO> buscaPontoAcessibilidadeFiltro(int classificacaoLocal) {
+        List<PontoAcessibilidade> pontoAcessibilidades = _pontoAcessibilidadeRepository.findByClassificacaoLocal(classificacaoLocal);
         if(pontoAcessibilidades.isEmpty()) {
             throw new DataNotFoundException(ErrorMessages.NENHUM_REGISTRO_ENCONTRADO.getMensagem());
         }

@@ -1,0 +1,842 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "Ubli - Acessibilidade urbana"
+  },
+  "servers": [
+    {
+      "url": "http://localhost:8080",
+      "description": "Generated server url"
+    }
+  ],
+  "paths": {
+    "/usuario/{id}/editar": {
+      "put": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Edita um usuário no banco de dados",
+        "description": "Endpoint para edição de um usuário no banco de dados com base no ID",
+        "operationId": "editaUsuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Usuario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O campo \u003Ccampo\u003E não pode estar vazio",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/{id}/editar": {
+      "put": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Edita um ponto de acessibilidade",
+        "description": "Endpoint para edição de um ponto de acessibilidade no banco de dados",
+        "operationId": "editaPontoAcessibilidade",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PontoAcessibilidadeDTO"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Você não tem permissão para realizar esta ação",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Ponto de acessibilidade não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O campo \u003Ccampo\u003E não pode estar vazio",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PontoAcessibilidade"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuario/login": {
+      "post": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Faz login do usuário",
+        "operationId": "login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequestDTO"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created"
+          },
+          "401": {
+            "description": "Usuário ou senha incorretos",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuario/cadastrar": {
+      "post": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Cadastra um novo usuário no banco de dados",
+        "description": "Endpoint para criação de um novo usuário no banco de dados",
+        "operationId": "cadastraUsuario",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Usuario"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "O campo \u003Ccampo\u003E não pode estar vazio",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imagens/{id}/adicionar": {
+      "post": {
+        "tags": [
+          "Fotos do Local"
+        ],
+        "summary": "Adiciona uma foto à um ponto já existente",
+        "description": "Endpoint para adição de fotos à um ponto de acessibilidade já cadastrado no banco de dados",
+        "operationId": "adicionaFotoPonto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "fotos"
+                ],
+                "type": "object",
+                "properties": {
+                  "fotos": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/adicionar": {
+      "post": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Cadastra um novo ponto de acessibilidade",
+        "description": "Endpoint para cadastro de um novo ponto de acessibilidade no banco de dados",
+        "operationId": "cadastraPontoAcessibilidade",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "required": [
+                  "fotos_local",
+                  "ponto_acessibilidade"
+                ],
+                "type": "object",
+                "properties": {
+                  "ponto_acessibilidade": {
+                    "$ref": "#/components/schemas/PontoAcessibilidadeDTO"
+                  },
+                  "fotos_local": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "400": {
+            "description": "O campo \u003Ccampo\u003E não pode estar vazio",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PontoAcessibilidade"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuario/{id}": {
+      "get": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Busca um usuário no banco de dados",
+        "description": "Endpoint para buscar de um usuário no banco de dados com base no ID",
+        "operationId": "buscaUsuarioId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Usuário não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/buscar": {
+      "get": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Busca os pontos de acessibilidade",
+        "description": "Endpoint para busca de todos os pontos de acessibilidade no banco de dados",
+        "operationId": "buscaPontosAcessibilidade",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PontoAcessibilidadeDTO"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhum registro encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/buscar/{id}": {
+      "get": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Busca um ponto de acessibilidade pelo id",
+        "description": "Endpoint para busca de um ponto de acessibilidade pelo seu id",
+        "operationId": "buscaPontoAcessibilidadeId",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Ponto de acessibilidade não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PontoAcessibilidade"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/buscar/{filtro}": {
+      "get": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Busca os pontos de acessibilidade por filtro",
+        "description": "Endpoint para busca de todos os pontos de acessibilidade por filtro no banco de dados",
+        "operationId": "buscaPontosAcessibilidadeFiltro",
+        "parameters": [
+          {
+            "name": "filtro",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PontoAcessibilidadeDTO"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Nenhum registro encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuario/{id}/excluir": {
+      "delete": {
+        "tags": [
+          "Usuários"
+        ],
+        "summary": "Exclui um usuário no banco de dados",
+        "description": "Endpoint para exclusão de um usuário no banco de dados com base no ID",
+        "operationId": "excluiUsuario",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Usuário não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/imagens/{id}/excluir": {
+      "delete": {
+        "tags": [
+          "Fotos do Local"
+        ],
+        "summary": "Exclui uma foto com base no id do ponto e da foto",
+        "description": "Endpoint para exclusão de uma foto única de um ponto de acessibilidade com base no id",
+        "operationId": "excluiFoto",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Ponto de acessibilidade não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK"
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/acessibilidade/{id}/excluir": {
+      "delete": {
+        "tags": [
+          "Pontos de Acessibilidade"
+        ],
+        "summary": "Exclui um ponto de acessibilidade",
+        "description": "Endpoint para a exclusão de um ponto de acessibilidade no banco de dados",
+        "operationId": "excluiPontoAcessibilidade",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "404": {
+            "description": "Ponto de acessibilidade não encontrado",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "500": {
+            "description": "Ocorreu um erro interno do servidor",
+            "content": {
+              "*/*": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseDTO"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Usuario": {
+        "type": "object",
+        "properties": {
+          "nome": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": "string"
+          },
+          "cpf": {
+            "type": "string"
+          },
+          "fotoPerfil": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "byte"
+            }
+          }
+        }
+      },
+      "ErrorResponseDTO": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "PontoAcessibilidadeDTO": {
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "classificacaoLocal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "idUsuario": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "PontoAcessibilidade": {
+        "type": "object",
+        "properties": {
+          "descricao": {
+            "type": "string"
+          },
+          "classificacaoLocal": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "latitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "longitude": {
+            "type": "number",
+            "format": "double"
+          },
+          "idUsuario": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "fotosLocal": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "LoginRequestDTO": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "senha": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}

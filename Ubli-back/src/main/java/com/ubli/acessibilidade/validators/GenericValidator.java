@@ -6,7 +6,7 @@ import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 
 public class GenericValidator {
     public static void ValidateStringNotEmptyOrNull(String string, String fieldName) {
-        if(string.isEmpty() || string == null) {
+        if(string == null || string.isEmpty()) {
             throw new EmptyFieldException(ErrorMessages.CAMPO_VAZIO.format(fieldName));
         }
     }

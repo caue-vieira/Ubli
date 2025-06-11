@@ -2,6 +2,9 @@ package com.ubli.acessibilidade.model;
 
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 import jakarta.persistence.Column;
@@ -15,6 +18,7 @@ public class FotosLocal {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID id;
     @Column(name = "id_ponto_acessibilidade")
     private UUID idPontoAcessibilidade;

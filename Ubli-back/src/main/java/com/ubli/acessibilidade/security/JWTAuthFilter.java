@@ -30,40 +30,40 @@ public class JWTAuthFilter extends OncePerRequestFilter {
     private IUsuarioRepository _usuarioRepository;
 
     @Override
-protected void doFilterInternal(HttpServletRequest request,
+    protected void doFilterInternal(HttpServletRequest request,
                                 HttpServletResponse response,
                                 FilterChain filterChain) throws ServletException, IOException {
 
-    final String authHeader = request.getHeader("Authorization");
+        final String authHeader = request.getHeader("Authorization");
 
-    if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    final String token = authHeader.substring(7);
-    String userId;
-
-    try {
-        userId = _authService.getIdFromToken(token); // deve retornar o UUID em String
-    } catch (Exception e) {
-        filterChain.doFilter(request, response);
-        return;
-    }
-
-    if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-        Optional<Usuario> usuarioOpt = _usuarioRepository.findById(UUID.fromString(userId));
-
-        if (usuarioOpt.isPresent()) {
-            Usuario usuario = usuarioOpt.get();
-
-            UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(usuario, null, List.of());
-
-            SecurityContextHolder.getContext().setAuthentication(authToken);
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            filterChain.doFilter(request, response);
+            return;
         }
-    }
 
-    filterChain.doFilter(request, response);
-}
+        final String token = authHeader.substring(7);
+        String userId;
+
+        try {
+            userId = _authService.getIdFromToken(token); // deve retornar o UUID em String
+        } catch (Exception e) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+            Optional<Usuario> usuarioOpt = _usuarioRepository.findById(UUID.fromString(userId));
+
+            if (usuarioOpt.isPresent()) {
+                Usuario usuario = usuarioOpt.get();
+
+                UsernamePasswordAuthenticationToken authToken =
+                        new UsernamePasswordAuthenticationToken(usuario, null, List.of());
+
+                SecurityContextHolder.getContext().setAuthentication(authToken);
+            }
+        }
+
+        filterChain.doFilter(request, response);
+    }
 }

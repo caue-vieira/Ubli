@@ -3,6 +3,9 @@ package com.ubli.acessibilidade.model;
 import java.util.List;
 import java.util.UUID;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.ubli.acessibilidade.dto.PontoAcessibilidadeDTO;
 
@@ -20,6 +23,7 @@ public class PontoAcessibilidade {
     
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
+    @JdbcTypeCode(SqlTypes.VARCHAR)
     private UUID id;
     private String descricao;
     @Column(name = "classificacao_local")
