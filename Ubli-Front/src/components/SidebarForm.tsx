@@ -97,11 +97,13 @@ function SidebarForm({
         },
     });
 
+    // Dados do formulário. Utilizar para preencher os campos do formulário caso seja uma edição
     const [formData, setFormData] = useState(getInitialFormData());
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const [isSaving, setIsSaving] = useState(false);
 
     useEffect(() => {
+        // Remover os logs após concluído
         // Adicionei logs para depuração. Verifique o console do navegador (F12).
         console.log("[SidebarForm] useEffect executado.");
         console.log("[SidebarForm] Dados existentes recebidos:", existingData);
@@ -114,9 +116,6 @@ function SidebarForm({
 
             // Se houver dados salvos, eles SOBRESCREVEM o estado base.
             if (existingData) {
-                console.log(
-                    "[SidebarForm] Mesclando dados existentes no formulário."
-                );
                 formState = {
                     ...formState,
                     classificacao_local: existingData.classificacao_local,
@@ -137,6 +136,7 @@ function SidebarForm({
         }
     }, [placeDetails, existingData]); // Dependências corretas
 
+    // Converte uma imagem para base64
     // Funções auxiliares (sem alterações)
     const convertToBase64 = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
@@ -156,6 +156,7 @@ function SidebarForm({
         });
     };
 
+    // Verificar usabilidade das funções
     const getCompleteAddress = (details: any) =>
         details?.formatted_address ||
         details?.vicinity ||
