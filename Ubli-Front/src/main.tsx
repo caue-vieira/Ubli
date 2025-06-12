@@ -4,10 +4,11 @@ import "./index.css";
 import App from "./App.tsx";
 import { SidebarProvider } from "./components/ui/sidebar.tsx";
 
+// biome-ignore lint/style/noNonNullAssertion: <explanation>
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <SidebarProvider>
-      <App />
-    </SidebarProvider>
-  </StrictMode>
+    <StrictMode>
+        <SidebarProvider>
+            <App />
+        </SidebarProvider>
+    </StrictMode>
 );

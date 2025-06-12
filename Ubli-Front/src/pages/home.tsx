@@ -5,14 +5,14 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import GoMap from "../components/maps/GoMap";
 
 export default function Home() {
-  return (
-    <>
-      <SidebarProvider className="z-10">
-        <AppSidebar />
-        <SidebarInset>
-          <GoMap />
-        </SidebarInset>
-      </SidebarProvider>
-    </>
-  );
+    return (
+        <>
+            <SidebarProvider className="z-10">
+                <AppSidebar />
+                <SidebarInset>
+                    <GoMap />
+                </SidebarInset>
+            </SidebarProvider>
+        </>
+    );
 }
