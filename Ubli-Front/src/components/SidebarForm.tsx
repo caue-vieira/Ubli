@@ -1,46 +1,47 @@
-import type React from "react";
 import { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-// Importações adicionadas do novo código
+
 import ImageCarousel from "./ImageCarousel";
 import type { AccessibilityData } from "./maps/GoMap";
+import { Form, FormControl, FormField, FormItem, FormLabel } from "./ui/form";
+import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
+import { Input } from "./ui/input";
+import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
+
+import { motion } from "framer-motion";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Form, FormControl, FormField, FormItem, FormLabel } from "./ui/form";
-import { Input } from "./ui/input";
-import { Select, SelectContent, SelectItem } from "./ui/select";
-import { SelectTrigger } from "@radix-ui/react-select";
-import { Textarea } from "./ui/textarea";
-import { Checkbox } from "./ui/checkbox";
 
 // As interfaces permanecem as mesmas com adições do novo código
 interface SidebarFormProps {
     onClose: () => void;
-    selectedLocation?: {
+    selectedLocation: {
         lat: number;
         lng: number;
         placeId?: string;
-    } | null;
-    placeDetails?: {
-        name?: string;
-        vicinity?: string;
-        formatted_address?: string;
-        types?: string[];
-        address_components?: any[];
+    };
+    placeDetails: {
+        name: string;
+        vicinity: string;
+        formatted_address: string;
+        types: string[];
+        address_components?: {
+            long_name: string;
+            short_name: string;
+            types: [];
+        }[];
     } | null;
     existingData?: AccessibilityData | null;
-    onSave: (
-        placeId: string,
-        data: AccessibilityData
-    ) => Promise<boolean | void>;
+    onSave: (data: AccessibilityData) => void;
 }
 
 const pontoFormSchema = z.object({
-    descricao: z.string().min(5),
-    endereco: z.string().min(8),
+    descricao: z.string(),
+    endereco: z.string(),
     acessibilidades: z.array(z.string()),
     tipo_estabelecimento: z.string().min(1),
+    fotos_local: z.array(z.string()),
 });
 
 const tiposAcessibilidade = [
@@ -49,6 +50,10 @@ const tiposAcessibilidade = [
     "Banheiro acessível",
     "Sinalização tátil",
     "Estacionamento reservado",
+    "Piso tátil",
+    "Acesso para cadeirantes",
+    "Audiodescrição",
+    "Braile",
 ];
 
 const tiposEstabelecimento = [
@@ -75,6 +80,7 @@ function SidebarForm({
             endereco: "",
             acessibilidades: [],
             tipo_estabelecimento: "",
+            fotos_local: [],
         },
     });
     // Estado inicial padrão e vazio para o formulário
@@ -98,10 +104,10 @@ function SidebarForm({
     });
 
     // Dados do formulário. Utilizar para preencher os campos do formulário caso seja uma edição
-    const [formData, setFormData] = useState(getInitialFormData());
+    // const [formData, setFormData] = useState(getInitialFormData());
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-    const [isSaving, setIsSaving] = useState(false);
 
+    // Verificar useEffect e remodelá-lo para preencher os campos do formulário
     useEffect(() => {
         // Remover os logs após concluído
         // Adicionei logs para depuração. Verifique o console do navegador (F12).
@@ -119,7 +125,10 @@ function SidebarForm({
                 formState = {
                     ...formState,
                     classificacao_local: existingData.classificacao_local,
-                    descricao: existingData.descricao,
+                    descricao:
+                        existingData.descricao == null
+                            ? ""
+                            : existingData.descricao,
                 };
                 // Define as imagens existentes para preview
                 setImagePreviews(existingData.fotos_local || []);
@@ -132,126 +141,31 @@ function SidebarForm({
                 "[SidebarForm] Estado final definido no formulário:",
                 formState
             );
-            setFormData(formState);
         }
     }, [placeDetails, existingData]); // Dependências corretas
 
-    // Converte uma imagem para base64
-    // Funções auxiliares (sem alterações)
-    const convertToBase64 = (file: File): Promise<string> => {
-        return new Promise((resolve, reject) => {
-            if (!file.type.startsWith("image/")) {
-                return reject(
-                    new Error("Apenas arquivos de imagem são permitidos")
-                );
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                // 5MB
-                return reject(new Error("Imagem muito grande (máximo 5MB)"));
-            }
-            const reader = new FileReader();
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (error) => reject(error);
-            reader.readAsDataURL(file);
-        });
-    };
-
-    // Verificar usabilidade das funções
-    const getCompleteAddress = (details: any) =>
-        details?.formatted_address ||
-        details?.vicinity ||
-        "Endereço não disponível";
-    const determinePlaceType = (types?: string[]) => {
-        if (!types) return "";
-        const typeMap: Record<string, string> = {
-            store: "Loja/Comércio",
-            restaurant: "Restaurante/Café",
-            hospital: "Hospital/Clínica",
-            school: "Escola/Universidade",
-            city_hall: "Órgão Público",
-            park: "Parque/Praça",
-        };
-        return types.map((t) => typeMap[t]).find(Boolean) || "Outro";
-    };
-
-    // Funções de manipulação de eventos (sem alterações)
-    const handleChange = (
-        e: React.ChangeEvent<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-        >
-    ) => {
-        const { name, value, type } = e.target as HTMLInputElement;
-        if (type === "checkbox") {
-            setFormData((prev) => ({
-                ...prev,
-                acessibilidades: {
-                    ...prev.acessibilidades,
-                    [name]: e.target.checked,
-                },
-            }));
-        } else {
-            setFormData((prev) => ({ ...prev, [name]: value }));
-        }
-    };
-
-    const handleImageUpload = async (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        if (!e.target.files) return;
-        setIsSaving(true);
-        try {
-            const newPreviews = await Promise.all(
-                Array.from(e.target.files).map(convertToBase64)
-            );
-            setImagePreviews((prev) => [...prev, ...newPreviews]);
-        } catch (error) {
-            alert((error as Error).message);
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    const removeImage = (indexToRemove: number) => {
-        setImagePreviews((prev) =>
-            prev.filter((_, index) => index !== indexToRemove)
-        );
-    };
-
-    // handleSubmit modificado para incluir as melhorias do novo código
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!selectedLocation) return alert("Nenhum local selecionado.");
-
-        // Garante um placeId único para salvar
-        const placeId =
-            selectedLocation.placeId ||
-            `custom-${selectedLocation.lat}-${selectedLocation.lng}`;
-
-        setIsSaving(true);
-        try {
-            // Verificar
-            const dataToSave: AccessibilityData = {
-                descricao: formData.descricao,
-                classificacao_local: formData.classificacao_local,
-                latitude: 0,
-                longitude: 0,
-                id_usuario: "0",
-                fotos_local: imagePreviews,
-            };
-
-            console.log("[SidebarForm] Salvando dados:", dataToSave);
-            await onSave(placeId, dataToSave);
-            onClose();
-        } catch (error) {
-            console.error("Erro ao salvar:", error);
-            alert("Ocorreu um erro ao salvar.");
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
     function onPontoSave(values: z.infer<typeof pontoFormSchema>) {
-        console.log(values);
+        const novoPonto = {
+            descricao: values.descricao === "" ? null : values.descricao,
+            endereco:
+                placeDetails === null
+                    ? values.endereco
+                    : placeDetails.formatted_address,
+            acessibilidades: values.acessibilidades,
+            tipo_estabelecimento: Number(values.tipo_estabelecimento),
+            fotos_local: values.fotos_local,
+            classificacao_local:
+                values.acessibilidades.length < 9
+                    ? values.acessibilidades.length < 5
+                        ? 0
+                        : 1
+                    : 2,
+            latitude: selectedLocation.lat,
+            longitude: selectedLocation.lng,
+            // id_usuario será adicionado no backend através do token JWT
+        };
+        onSave(novoPonto);
+        console.log(novoPonto);
     }
 
     return (
@@ -289,140 +203,222 @@ function SidebarForm({
                 <h3 className="font-semibold text-lg text-gray-900">
                     {placeDetails?.name || "Local selecionado"}
                 </h3>
-                {/*
-        Verificar
-        <p className="text-sm text-gray-600">{formData.endereco}</p>
-        */}
             </div>
             {/**
-             * Verificar se o formulário está correto e estilizado corretamente
              * Ao editar, inserir os valores nos campos do formulário
              */}
             <Form {...pontoForm}>
-                <form onSubmit={pontoForm.handleSubmit(onPontoSave)}>
-                    <FormField
-                        control={pontoForm.control}
-                        name="endereco"
-                        render={() => (
-                            <FormItem>
-                                <FormLabel>Endereço</FormLabel>
-                                <FormControl>
-                                    <Input readOnly value={"Endereço teste"} />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={pontoForm.control}
-                        name="tipo_estabelecimento"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Tipo de Estabelecimento</FormLabel>
-                                <FormControl>
-                                    <Select {...field}>
-                                        <SelectTrigger>Selecione</SelectTrigger>
-                                        <SelectContent>
-                                            {tiposEstabelecimento.map(
-                                                (
-                                                    tipoEstabelecimento,
-                                                    index
-                                                ) => (
-                                                    <SelectItem
-                                                        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                                                        key={index}
-                                                        value={String(index)}
-                                                    >
-                                                        {tipoEstabelecimento}
-                                                    </SelectItem>
-                                                )
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={pontoForm.control}
-                        name="acessibilidades"
-                        render={() => (
-                            <FormItem>
-                                <FormLabel>
-                                    Recursos de acessibilidade
-                                </FormLabel>
-                                <div className="flex flex-col gap-2">
-                                    {tiposAcessibilidade.map((tipo) => (
-                                        <FormField
-                                            key={tipo}
-                                            control={pontoForm.control}
-                                            name="acessibilidades"
-                                            render={({ field }) => {
-                                                const isChecked =
-                                                    field.value?.includes(tipo);
-
-                                                const handleChange = (
-                                                    checked: boolean
-                                                ) => {
-                                                    if (checked) {
-                                                        field.onChange([
-                                                            ...field.value,
-                                                            tipo,
-                                                        ]);
-                                                    } else {
-                                                        field.onChange(
-                                                            field.value.filter(
-                                                                (
-                                                                    item: string
-                                                                ) =>
-                                                                    item !==
-                                                                    tipo
-                                                            )
+                <form
+                    onSubmit={pontoForm.handleSubmit(onPontoSave)}
+                    className="h-full flex flex-col justify-between"
+                >
+                    <div className="flex flex-col gap-5">
+                        <FormField
+                            control={pontoForm.control}
+                            name="endereco"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>Endereço</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            readOnly
+                                            value={
+                                                placeDetails == null
+                                                    ? "Sem endereço disponível"
+                                                    : placeDetails.formatted_address
+                                            }
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={pontoForm.control}
+                            name="tipo_estabelecimento"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Tipo de Estabelecimento
+                                    </FormLabel>
+                                    <FormControl>
+                                        <Select
+                                            onValueChange={field.onChange}
+                                            value={field.value}
+                                        >
+                                            <SelectTrigger className="w-full">
+                                                {tiposEstabelecimento[
+                                                    Number(field.value)
+                                                ] ?? "Selecione"}
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {tiposEstabelecimento.map(
+                                                    (
+                                                        tipoEstabelecimento,
+                                                        index
+                                                    ) => (
+                                                        <SelectItem
+                                                            // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                                                            key={index}
+                                                            value={String(
+                                                                index
+                                                            )}
+                                                        >
+                                                            {
+                                                                tipoEstabelecimento
+                                                            }
+                                                        </SelectItem>
+                                                    )
+                                                )}
+                                            </SelectContent>
+                                        </Select>
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={pontoForm.control}
+                            name="acessibilidades"
+                            render={() => (
+                                <FormItem>
+                                    <FormLabel>
+                                        Recursos de acessibilidade
+                                    </FormLabel>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
+                                        {tiposAcessibilidade.map((tipo) => (
+                                            <FormField
+                                                key={tipo}
+                                                control={pontoForm.control}
+                                                name="acessibilidades"
+                                                render={({ field }) => {
+                                                    const isChecked =
+                                                        field.value?.includes(
+                                                            tipo
                                                         );
-                                                    }
-                                                };
 
-                                                return (
-                                                    <FormItem
-                                                        key={tipo}
-                                                        className="flex flex-row items-start space-x-3 space-y-0"
-                                                    >
-                                                        <FormControl>
-                                                            <Checkbox
-                                                                checked={
-                                                                    isChecked
+                                                    const handleChange = (
+                                                        checked: boolean
+                                                    ) => {
+                                                        if (checked) {
+                                                            field.onChange([
+                                                                ...field.value,
+                                                                tipo,
+                                                            ]);
+                                                        } else {
+                                                            field.onChange(
+                                                                field.value.filter(
+                                                                    (
+                                                                        item: string
+                                                                    ) =>
+                                                                        item !==
+                                                                        tipo
+                                                                )
+                                                            );
+                                                        }
+                                                    };
+
+                                                    return (
+                                                        <FormItem
+                                                            key={tipo}
+                                                            className="flex flex-row items-start space-x-3 space-y-0"
+                                                        >
+                                                            <FormControl>
+                                                                <Checkbox
+                                                                    checked={
+                                                                        isChecked
+                                                                    }
+                                                                    onCheckedChange={
+                                                                        handleChange
+                                                                    }
+                                                                />
+                                                            </FormControl>
+                                                            <FormLabel className="text-sm font-normal">
+                                                                {tipo}
+                                                            </FormLabel>
+                                                        </FormItem>
+                                                    );
+                                                }}
+                                            />
+                                        ))}
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={pontoForm.control}
+                            name="fotos_local"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Fotos do local</FormLabel>
+                                    <FormControl>
+                                        <Input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            onChange={async (e) => {
+                                                const files = e.target.files;
+                                                if (!files) return;
+
+                                                const base64Promises =
+                                                    Array.from(files).map(
+                                                        (file) => {
+                                                            return new Promise<string>(
+                                                                (
+                                                                    resolve,
+                                                                    reject
+                                                                ) => {
+                                                                    const reader =
+                                                                        new FileReader();
+                                                                    reader.onload =
+                                                                        () =>
+                                                                            resolve(
+                                                                                reader.result as string
+                                                                            );
+                                                                    reader.onerror =
+                                                                        reject;
+                                                                    reader.readAsDataURL(
+                                                                        file
+                                                                    );
                                                                 }
-                                                                onCheckedChange={
-                                                                    handleChange
-                                                                }
-                                                            />
-                                                        </FormControl>
-                                                        <FormLabel className="text-sm font-normal">
-                                                            {tipo}
-                                                        </FormLabel>
-                                                    </FormItem>
-                                                );
+                                                            );
+                                                        }
+                                                    );
+
+                                                try {
+                                                    const base64Images =
+                                                        await Promise.all(
+                                                            base64Promises
+                                                        );
+                                                    field.onChange(
+                                                        base64Images
+                                                    );
+                                                } catch (err) {
+                                                    console.error(
+                                                        "Erro ao ler arquivos:",
+                                                        err
+                                                    );
+                                                }
                                             }}
                                         />
-                                    ))}
-                                </div>
-                            </FormItem>
-                        )}
-                    />
-                    <FormField
-                        control={pontoForm.control}
-                        name="descricao"
-                        render={({ field }) => (
-                            <FormItem>
-                                <FormLabel>Descrição</FormLabel>
-                                <FormControl>
-                                    <Textarea
-                                        placeholder="Descrição"
-                                        {...field}
-                                    />
-                                </FormControl>
-                            </FormItem>
-                        )}
-                    />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                        <FormField
+                            control={pontoForm.control}
+                            name="descricao"
+                            render={({ field }) => (
+                                <FormItem>
+                                    <FormLabel>Observações</FormLabel>
+                                    <FormControl>
+                                        <Textarea
+                                            placeholder="Observações adicionais"
+                                            {...field}
+                                        />
+                                    </FormControl>
+                                </FormItem>
+                            )}
+                        />
+                    </div>
                     <div className="mt-6 pt-4 border-t flex justify-end space-x-3">
                         <button
                             type="button"
@@ -433,159 +429,13 @@ function SidebarForm({
                         </button>
                         <button
                             type="submit"
-                            disabled={isSaving}
                             className="px-5 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
                         >
-                            {isSaving
-                                ? "Salvando..."
-                                : existingData
-                                  ? "Atualizar"
-                                  : "Salvar"}
+                            {existingData ? "Atualizar" : "Salvar"}
                         </button>
                     </div>
                 </form>
             </Form>
-
-            {/**
-             * Lembrar de verificar o campo de imagens pois será importante
-             */}
-            <form
-                onSubmit={handleSubmit}
-                className="flex-1 flex flex-col min-h-0"
-            >
-                <div className="space-y-5 flex-1 overflow-y-auto pr-3">
-                    {/* Tipo de estabelecimento */}
-                    <div>
-                        <label className="block mb-1 font-medium text-gray-700">
-                            Tipo de Estabelecimento *
-                        </label>
-                        <select
-                            name="tipo"
-                            value={formData.tipo}
-                            onChange={handleChange}
-                            required
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                        >
-                            <option value="" disabled>
-                                Selecione...
-                            </option>
-                            {tiposEstabelecimento.map((tipo) => (
-                                <option key={tipo} value={tipo}>
-                                    {tipo}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
-
-                    {/* Recursos de acessibilidade */}
-                    <div>
-                        <label className="block mb-2 font-medium text-gray-700">
-                            Recursos de Acessibilidade
-                        </label>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-3">
-                            {Object.entries(formData.acessibilidades).map(
-                                ([key, value]) => (
-                                    <label
-                                        key={key}
-                                        className="flex items-center space-x-3 cursor-pointer"
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            name={key}
-                                            checked={value}
-                                            onChange={handleChange}
-                                            className="h-5 w-5 text-blue-600 rounded border-gray-400 focus:ring-blue-500"
-                                        />
-                                        <span className="capitalize text-gray-800">
-                                            {key.replace(/_/g, " ")}
-                                        </span>
-                                    </label>
-                                )
-                            )}
-                        </div>
-                    </div>
-
-                    {/**
-                     * Isso será importante para o formulário
-                     */}
-                    {/* Imagens */}
-                    <div>
-                        <label className="block mb-1 font-medium text-gray-700">
-                            Fotos do local/Acessibilidade
-                        </label>
-                        <input
-                            type="file"
-                            accept="image/*"
-                            multiple
-                            onChange={handleImageUpload}
-                            disabled={isSaving}
-                            className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
-                        />
-                        {imagePreviews.length > 0 && (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mt-3">
-                                {imagePreviews.map((preview, index) => (
-                                    <div
-                                        key={index}
-                                        className="relative group aspect-square"
-                                    >
-                                        <img
-                                            src={preview}
-                                            alt={`Preview ${index + 1}`}
-                                            className="w-full h-full object-cover rounded-md border"
-                                        />
-                                        <button
-                                            type="button"
-                                            onClick={() => removeImage(index)}
-                                            className="absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            &times;
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Observações */}
-                    <div>
-                        <label className="block mb-1 font-medium text-gray-700">
-                            Observações
-                        </label>
-                        <textarea
-                            name="observacoes"
-                            value={formData.observacoes}
-                            onChange={handleChange}
-                            rows={4}
-                            className="w-full p-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
-                            placeholder="Informações adicionais..."
-                        />
-                    </div>
-
-                    {/* Adicionado seção de avaliações do novo código */}
-                </div>
-
-                {/* Botões de ação */}
-                <div className="mt-6 pt-4 border-t flex justify-end space-x-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-5 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
-                    >
-                        Cancelar
-                    </button>
-                    <button
-                        type="submit"
-                        disabled={isSaving}
-                        className="px-5 py-2 bg-blue-600 text-white font-semibold rounded-md hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-wait"
-                    >
-                        {isSaving
-                            ? "Salvando..."
-                            : existingData
-                              ? "Atualizar"
-                              : "Salvar"}
-                    </button>
-                </div>
-            </form>
         </motion.div>
     );
 }

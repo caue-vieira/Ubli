@@ -31,18 +31,6 @@ type PlaceDetails = {
     address_components?: any[];
 };
 
-type AccessibilityFeatures = {
-    rampa: boolean;
-    elevador: boolean;
-    banheiro_acessivel: boolean;
-    sinalizacao_tatil: boolean;
-    vaga_especial: boolean;
-    piso_tatil: boolean;
-    acesso_cadeirantes: boolean;
-    audio_descricao: boolean;
-    braille: boolean;
-};
-
 // Novo tipo para uma avaliação individual
 export type PlaceReview = {
     id: string; // ID único da avaliação
@@ -53,12 +41,14 @@ export type PlaceReview = {
 };
 
 export type AccessibilityData = {
-    descricao: string;
+    descricao: string | null;
     classificacao_local: number;
     latitude: number;
     longitude: number;
-    id_usuario: string;
     fotos_local: string[];
+    endereco: string;
+    acessibilidades: string[];
+    tipo_estabelecimento: number;
 };
 
 function GoMap() {
@@ -69,6 +59,10 @@ function GoMap() {
         language: "pt-BR",
         region: "BR",
     });
+
+    // É atualizado sempre que o usuário editar ou adicionar um novo ponto
+    const [novoPontoTrigger, setNovoPontoTrigger] =
+        useState<AccessibilityData | null>();
 
     const [map, setMap] = useState<google.maps.Map | null>(null);
     const [mapCenter, setMapCenter] = useState(center);
@@ -135,6 +129,11 @@ function GoMap() {
         }
     }, [isLoaded]);
 
+    // Utilizar este useEffect para fazer a requisição dos pontos sempre que o novoPontoTrigger for atualizado
+    useEffect(() => {
+        console.log("Valor do useState: ", novoPontoTrigger);
+    }, [novoPontoTrigger]);
+
     const mapOptions = {
         minZoom: 5,
         fullscreenControl: false,
@@ -165,28 +164,6 @@ function GoMap() {
         if (trueFeatures < totalFeatures / 2) return "yellow";
         return "green";
     };
-
-    useEffect(() => {
-        const savedData = localStorage.getItem("accessibilityData");
-        if (savedData) {
-            try {
-                setAccessibilityData(JSON.parse(savedData));
-            } catch (error) {
-                console.error("Erro ao carregar dados do localStorage:", error);
-            }
-        }
-    }, []);
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(
-                "accessibilityData",
-                JSON.stringify(accessibilityData)
-            );
-        } catch (error) {
-            console.error("Erro ao salvar no localStorage:", error);
-        }
-    }, [accessibilityData]);
 
     const loadNearbyPlaces = useCallback(
         (location: google.maps.LatLngLiteral) => {
@@ -238,7 +215,7 @@ function GoMap() {
                             ],
                         },
                         (place, status) => {
-                            if (status === "OK" && place.geometry?.location) {
+                            if (status === "OK" && place?.geometry?.location) {
                                 const location = {
                                     lat: place.geometry.location.lat(),
                                     lng: place.geometry.location.lng(),
@@ -407,7 +384,8 @@ function GoMap() {
         );
     };
 
-    const handleSaveData = async (placeId: string, data: AccessibilityData) => {
+    const handleSaveData = (data: AccessibilityData) => {
+        setNovoPontoTrigger(data);
         /**
          * Esta função é responsável por fazer o salvamento dos dados do ponto no localStorage
          * Não será mais necessário salvar no localStorage, então será necessário refazer para se adequar ao que o backend espera
