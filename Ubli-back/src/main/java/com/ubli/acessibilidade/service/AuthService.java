@@ -1,5 +1,6 @@
 package com.ubli.acessibilidade.service;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 
@@ -23,8 +24,12 @@ public class AuthService {
     private long expiration;
 
     private Key getSignInKey() {
-        return Keys.hmacShaKeyFor(jwtKey.getBytes());
+
+    if(jwtKey.length() < 32) {
+        throw new IllegalArgumentException("Chave JWT deve ter pelo menos 32 caracteres");
     }
+    return Keys.hmacShaKeyFor(jwtKey.getBytes(StandardCharsets.UTF_8));
+}
 
     public String generateToken(Usuario usuario) {
         return Jwts.builder()

@@ -33,6 +33,14 @@ public class JWTAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request,
                                 HttpServletResponse response,
                                 FilterChain filterChain) throws ServletException, IOException {
+        
+        String path = request.getServletPath();
+        
+        // Ignora rotas públicas
+        if (path.equals("/usuario/login") || path.equals("/usuario/cadastrar")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         final String authHeader = request.getHeader("Authorization");
 
@@ -41,29 +49,24 @@ public class JWTAuthFilter extends OncePerRequestFilter {
             return;
         }
 
-        final String token = authHeader.substring(7);
-        String userId;
-
         try {
-            userId = _authService.getIdFromToken(token); // deve retornar o UUID em String
-        } catch (Exception e) {
-            filterChain.doFilter(request, response);
-            return;
-        }
-
-        if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            Optional<Usuario> usuarioOpt = _usuarioRepository.findById(UUID.fromString(userId));
-
-            if (usuarioOpt.isPresent()) {
-                Usuario usuario = usuarioOpt.get();
-
-                UsernamePasswordAuthenticationToken authToken =
-                        new UsernamePasswordAuthenticationToken(usuario, null, List.of());
-
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+            final String token = authHeader.substring(7);
+            String userId = _authService.getIdFromToken(token);
+            
+            if (userId != null) {
+                Optional<Usuario> usuarioOpt = _usuarioRepository.findById(UUID.fromString(userId));
+                if (usuarioOpt.isPresent()) {
+                    UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
+                        usuarioOpt.get(), null, List.of());
+                    SecurityContextHolder.getContext().setAuthentication(authToken);
+                }
             }
+            
+            filterChain.doFilter(request, response);
+            
+        } catch (Exception e) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.getWriter().write("Token inválido");
         }
-
-        filterChain.doFilter(request, response);
     }
 }

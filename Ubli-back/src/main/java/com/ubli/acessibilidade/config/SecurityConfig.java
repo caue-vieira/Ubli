@@ -10,6 +10,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.ubli.acessibilidade.security.JWTAuthFilter;
 
+import jakarta.servlet.http.HttpServletResponse;
+
 @Configuration
 public class SecurityConfig {
     
@@ -18,24 +20,29 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        return http.csrf(csrf -> csrf.disable())
+        http
+            .csrf(csrf -> csrf.disable())
+            .cors(cors -> cors.disable()) // Adicione esta linha se não estiver usando CORS
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers(
-                    "/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/swagger-ui.html",
-                    "/swagger-resources/**",
-                    "/webjars/**"
-                ).permitAll()
                 .requestMatchers(
                     "/usuario/login",
                     "/usuario/cadastrar",
-                    "/acessibilidade/buscar"
+                    "/acessibilidade/buscar",
+                    "/v3/api-docs/**",
+                    "/swagger-ui/**"
                 ).permitAll()
                 .anyRequest().authenticated()
-                )
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .addFilterBefore(_jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-                .build();
+            )
+            .addFilterBefore(_jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .exceptionHandling(handling -> handling
+                .authenticationEntryPoint((request, response, authException) -> {
+                    response.setContentType("application/json");
+                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                    response.getWriter().write("{\"error\": \"Acesso não autorizado\"}");
+                })
+            );
+
+        return http.build();
     }
 }

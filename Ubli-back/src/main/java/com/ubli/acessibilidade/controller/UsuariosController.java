@@ -64,21 +64,40 @@ public class UsuariosController {
     })
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody LoginRequestDTO loginRequest) {
-        Optional<Usuario> usuarioOpt = _iUsuarioRepository.findByEmail(loginRequest.email);
+    try {
+        // Adicione logs para depuração
+        System.out.println("Email recebido: " + loginRequest.email);
+        System.out.println("Senha recebida: " + loginRequest.senha);
 
+        Optional<Usuario> usuarioOpt = _iUsuarioRepository.findByEmail(loginRequest.email.trim());
+        
         if (usuarioOpt.isEmpty()) {
-            return ResponseEntity.status(401).body("Credenciais inválidas.");
+            System.out.println("Usuário não encontrado");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                   .body(new ErrorResponseDTO("Credenciais inválidas"));
         }
 
         Usuario usuario = usuarioOpt.get();
+        System.out.println("Hash no banco: " + usuario.getSenha());
+        
+        // Verifique se a senha foi codificada
+        boolean senhaValida = passwordEncoder.matches(loginRequest.senha.trim(), usuario.getSenha());
+        System.out.println("Senha válida? " + senhaValida);
 
-        if (!passwordEncoder.matches(loginRequest.senha, usuario.getSenha())) {
-            return ResponseEntity.status(401).body("Credenciais inválidas.");
+        if (!senhaValida) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                   .body(new ErrorResponseDTO("Credenciais inválidas"));
         }
 
         String token = _authService.generateToken(usuario);
         return ResponseEntity.ok(new LoginResponseDTO(token));
+
+    } catch (Exception e) {
+        System.out.println("Erro no login: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+               .body(new ErrorResponseDTO("Erro interno no servidor"));
     }
+}
 
     /*
      * A anotação Operation edita a descrição da rota no Swagger
@@ -99,14 +118,16 @@ public class UsuariosController {
     })
     @PostMapping("/cadastrar")
     public ResponseEntity<Object> cadastraUsuario(@RequestBody Usuario usuario) {
-        try {
-            Usuario _usuario = _usuarioService.cadastrarUsuario(usuario);
-            return ResponseEntity.status(HttpStatus.CREATED).body(_usuario);
-        } catch(EmptyFieldException | InvalidFieldException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
-        } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-        }
+    try {
+        // Codifique a senha antes de salvar
+        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
+        Usuario _usuario = _usuarioService.cadastrarUsuario(usuario);
+        return ResponseEntity.status(HttpStatus.CREATED).body(_usuario);
+    } catch(EmptyFieldException | InvalidFieldException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
+    } catch(Exception e) {
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+    }
     }
 
     /*
