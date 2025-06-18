@@ -22,15 +22,11 @@ interface SidebarFormProps {
         placeId?: string;
     };
     placeDetails: {
-        name: string;
-        vicinity: string;
-        formatted_address: string;
-        types: string[];
-        address_components?: {
-            long_name: string;
-            short_name: string;
-            types: [];
-        }[];
+        name?: string;
+        vicinity?: string;
+        formatted_address?: string;
+        types?: string[];
+        address_components?: any[];
     } | null;
     existingData?: AccessibilityData | null;
     onSave: (data: AccessibilityData) => void;

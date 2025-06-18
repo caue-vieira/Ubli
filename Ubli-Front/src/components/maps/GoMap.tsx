@@ -63,22 +63,26 @@ function GoMap() {
     // É atualizado sempre que o usuário editar ou adicionar um novo ponto
     const [novoPontoTrigger, setNovoPontoTrigger] =
         useState<AccessibilityData | null>();
-
-    const [map, setMap] = useState<google.maps.Map | null>(null);
-    const [mapCenter, setMapCenter] = useState(center);
-    const [markerIcons, setMarkerIcons] = useState<any>(null);
-    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(
-        null
-    );
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    // Aqui ele irá buscar a latitude e longitude e o ID do local
     const [selectedPlace, setSelectedPlace] = useState<PlaceLocation | null>(
         null
     );
+
+    const [map, setMap] = useState<google.maps.Map | null>(null);
+    const [mapCenter, setMapCenter] = useState(center);
     const [placeDetails, setPlaceDetails] = useState<PlaceDetails | null>(null);
-    const [showSidebar, setShowSidebar] = useState(false);
     const [userLocation, setUserLocation] =
         useState<google.maps.LatLngLiteral | null>(null);
     const [nearbyPlaces, setNearbyPlaces] = useState<any[]>([]);
+
+    const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(
+        null
+    );
+    const [markerIcons, setMarkerIcons] = useState<any>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+
+    const [showSidebar, setShowSidebar] = useState(false);
+
     const [showAddOptions, setShowAddOptions] = useState(false);
     const [showAddressSearch, setShowAddressSearch] = useState(false);
     const addressSearchInputRef = useRef<HTMLInputElement | null>(null);
@@ -157,7 +161,7 @@ function GoMap() {
         accessibilityData: AccessibilityData | null
     ): string => {
         if (!accessibilityData) return "red";
-        const features = accessibilityData.features;
+        const features = accessibilityData.classificacao_local;
         const totalFeatures = Object.keys(features).length;
         const trueFeatures = Object.values(features).filter((v) => v).length;
         if (trueFeatures === 0) return "red";
@@ -193,15 +197,21 @@ function GoMap() {
 
     const onLoad = useCallback(
         (map: google.maps.Map) => {
+            // Cria uma área de visualização baseada no const "center" no início do arquivo
             const bounds = new window.google.maps.LatLngBounds(center);
             map.fitBounds(bounds);
             setMap(map);
+
+            // Adiciona um onclick no mapa
             const clickListener = map.addListener("click", (event) => {
                 if (event.placeId) {
+                    // Adiciona os dados do local clicado aos useStates
                     event.stop();
                     const service = new window.google.maps.places.PlacesService(
                         map
                     );
+
+                    // Retorna os dados do local selecionado com base no placeId
                     service.getDetails(
                         {
                             placeId: event.placeId,
@@ -216,6 +226,7 @@ function GoMap() {
                         },
                         (place, status) => {
                             if (status === "OK" && place?.geometry?.location) {
+                                // Busca a latitude, longitude e o ID do local e salva no useState junto com os detalhes do lugar
                                 const location = {
                                     lat: place.geometry.location.lat(),
                                     lng: place.geometry.location.lng(),
@@ -234,9 +245,12 @@ function GoMap() {
                         }
                     );
                 } else {
+                    // Limpa a seleção ao clicar em uma área vazia
                     setSelectedPlace(null);
                 }
             });
+
+            // Centraliza o mapa para a localização do usuário
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -255,6 +269,7 @@ function GoMap() {
                     }
                 );
             }
+            // Remove o listener
             return () => {
                 google.maps.event.removeListener(clickListener);
             };
@@ -272,6 +287,7 @@ function GoMap() {
         autocompleteRef.current = autocomplete;
     };
 
+    // Faz a manipulação do mapa e do local selecionado quando o usuário digita e seleciona uma opção do campo de busca
     const handlePlaceChanged = () => {
         const place = autocompleteRef.current?.getPlace();
         if (place?.geometry?.location) {
@@ -300,6 +316,7 @@ function GoMap() {
         }
     };
 
+    // Faz a busca do local caso o usuário busque manualmente o local
     const handleManualSearch = () => {
         const query = inputRef.current?.value;
         if (!query || !map) return;
@@ -316,13 +333,18 @@ function GoMap() {
                 "address_components",
             ],
         };
+        // Faz a busca de locais que batem com a pesquisa do usuário
         service.findPlaceFromQuery(request, (results, status) => {
             if (
                 status === google.maps.places.PlacesServiceStatus.OK &&
                 results &&
-                results[0].geometry?.location
+                results[0]?.geometry?.location
             ) {
                 const place = results[0];
+                if (!place.geometry || !place.geometry.location) {
+                    console.error("Localização do local não encontrada");
+                    return;
+                }
                 const location = {
                     lat: place.geometry.location.lat(),
                     lng: place.geometry.location.lng(),
@@ -349,6 +371,7 @@ function GoMap() {
         });
     };
 
+    // Chama a função de busca manual também ao apertar a tecla "Enter"
     const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter") {
             e.preventDefault();
@@ -357,6 +380,7 @@ function GoMap() {
     };
 
     const handleAddressSearch = () => {
+        // Converte o endereço pesquisado para coordenadas
         if (!addressSearchInputRef.current?.value || !map) return;
         const geocoder = new google.maps.Geocoder();
         geocoder.geocode(
@@ -467,6 +491,7 @@ function GoMap() {
             {/* Botão flutuante para adicionar novo local */}
             <div className="absolute bottom-40 right-2 z-[1000]">
                 <button
+                    type="button"
                     onClick={() => setShowAddOptions(!showAddOptions)}
                     className="p-1 w-12 h-12 bg-white text-black rounded-full shadow-lg hover:bg-gray-200 transition flex items-center justify-center"
                 >
@@ -482,19 +507,19 @@ function GoMap() {
                     <b>Legenda dos marcadores:</b>{" "}
                 </span>
                 <div className="flex items-center mt-2 mb-2">
-                    <div className="w-4 h-4 rounded-full bg-green-500 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-green-500 mr-2" />
                     <span className="text-sm">Acessível</span>
                 </div>
                 <div className="flex items-center mb-2">
-                    <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-yellow-500 mr-2" />
                     <span className="text-sm">Parcialmente acessível</span>
                 </div>
                 <div className="flex items-center mb-2">
-                    <div className="w-4 h-4 rounded-full bg-red-500 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-red-500 mr-2" />
                     <span className="text-sm">Sem acessibilidade</span>
                 </div>
                 <div className="flex items-center">
-                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2"></div>
+                    <div className="w-4 h-4 rounded-full bg-blue-500 mr-2" />
                     <span className="text-sm">Sua localização</span>
                 </div>
             </div>
@@ -508,6 +533,7 @@ function GoMap() {
                                 Adicionar acessibilidade
                             </h3>
                             <button
+                                type="button"
                                 onClick={() => setShowAddressSearch(true)}
                                 className="w-full p-2 bg-gray-50 text-gray-700 rounded hover:bg-gray-100 flex items-center text-sm"
                             >
@@ -529,12 +555,14 @@ function GoMap() {
                             />
                             <div className="flex space-x-2">
                                 <button
+                                    type="button"
                                     onClick={handleAddressSearch}
                                     className="flex-1 p-2 bg-blue-500 text-white rounded hover:bg-blue-600 text-sm"
                                 >
                                     Buscar
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={() => setShowAddressSearch(false)}
                                     className="p-2 bg-gray-200 rounded hover:bg-gray-300 text-sm"
                                 >
@@ -553,6 +581,7 @@ function GoMap() {
                     className={`${isSearchOpen ? "hidden" : "block"} md:hidden`}
                 >
                     <button
+                        type="button"
                         onClick={() => setIsSearchOpen(true)}
                         className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg"
                         aria-label="Abrir busca"
@@ -647,15 +676,16 @@ function GoMap() {
                 >
                     <div className="p-3 min-w-[200px]">
                         {selectedPlace.placeId &&
-                            accessibilityData[selectedPlace.placeId]?.images &&
-                            accessibilityData[selectedPlace.placeId].images
+                            accessibilityData[selectedPlace.placeId]
+                                ?.fotos_local &&
+                            accessibilityData[selectedPlace.placeId].fotos_local
                                 .length > 0 && (
                                 <div className="mb-3">
                                     <ImageCarousel
                                         images={
                                             accessibilityData[
                                                 selectedPlace.placeId
-                                            ].images
+                                            ].fotos_local
                                         }
                                         className="max-h-48"
                                     />
@@ -676,27 +706,31 @@ function GoMap() {
                                         Acessibilidades:
                                     </h4>
                                     <ul className="space-y-1">
-                                        {Object.entries(
-                                            accessibilityData[
-                                                selectedPlace.placeId
-                                            ].features
-                                        )
-                                            .filter(([_, value]) => value)
-                                            .map(([key]) => (
+                                        {/* NOVO FORMATO: usando array acessibilidades ao invés de objeto features */}
+                                        {accessibilityData[
+                                            selectedPlace.placeId
+                                        ].acessibilidades.map(
+                                            (acessibilidade, index) => (
                                                 <li
-                                                    key={key}
+                                                    // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                                                    key={index}
                                                     className="flex items-center text-sm py-1 px-2 bg-blue-50 rounded"
                                                 >
-                                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                                                    <span className="w-2 h-2 bg-blue-500 rounded-full mr-2" />
                                                     <span className="capitalize">
-                                                        {key.replace("_", " ")}
+                                                        {acessibilidade.replace(
+                                                            /_/g,
+                                                            " "
+                                                        )}
                                                     </span>
                                                 </li>
-                                            ))}
+                                            )
+                                        )}
                                     </ul>
                                 </div>
                             )}
                         <button
+                            type="button"
                             onClick={() => setShowSidebar(true)}
                             className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                         >
@@ -754,12 +788,12 @@ function GoMap() {
                                     r="10"
                                     stroke="currentColor"
                                     strokeWidth="4"
-                                ></circle>
+                                />
                                 <path
                                     className="opacity-75"
                                     fill="currentColor"
                                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                ></path>
+                                />
                             </svg>
                             <div>
                                 <h3 className="text-lg font-medium">
