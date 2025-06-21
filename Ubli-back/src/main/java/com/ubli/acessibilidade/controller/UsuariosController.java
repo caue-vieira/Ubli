@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ubli.acessibilidade.dto.LoginRequestDTO;
-import com.ubli.acessibilidade.dto.LoginResponseDTO;
 import com.ubli.acessibilidade.errors.ErrorResponseDTO;
 import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
 import com.ubli.acessibilidade.errors.exceptions.EmptyFieldException;
@@ -27,7 +26,6 @@ import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IUsuarioRepository;
 import com.ubli.acessibilidade.interfaces.service.IUsuarioService;
 import com.ubli.acessibilidade.model.Usuario;
-import com.ubli.acessibilidade.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -36,23 +34,17 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-// Apenas define o nome da tag no Swagger
 @Tag(name = "Usuários")
-// Define este controller como sendo um RestController, permitindo ao JPA reconhecê-lo como um controller
 @RestController
-// Define a rota principal do controller (todas as rotas das funções iniciarão com /usuario/...)
 @RequestMapping("/usuario")
 public class UsuariosController {
 
-    // Faz a criação automática do contrutor
     @Autowired
     private IUsuarioService _usuarioService;
     @Autowired
     private IUsuarioRepository _iUsuarioRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-    @Autowired
-    private AuthService _authService;
 
     @ResponseStatus(code = HttpStatus.OK)
     @Operation(summary = "Faz login do usuário")
@@ -64,44 +56,31 @@ public class UsuariosController {
     })
     @PostMapping("/login")
     public ResponseEntity<Object> login(@RequestBody LoginRequestDTO loginRequest) {
-    try {
-        // Adicione logs para depuração
-        System.out.println("Email recebido: " + loginRequest.email);
-        System.out.println("Senha recebida: " + loginRequest.senha);
+        try {
+            Optional<Usuario> usuarioOpt = _iUsuarioRepository.findByEmail(loginRequest.email.trim());
+            
+            if (usuarioOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                       .body(new ErrorResponseDTO("Credenciais inválidas"));
+            }
 
-        Optional<Usuario> usuarioOpt = _iUsuarioRepository.findByEmail(loginRequest.email.trim());
-        
-        if (usuarioOpt.isEmpty()) {
-            System.out.println("Usuário não encontrado");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                   .body(new ErrorResponseDTO("Credenciais inválidas"));
+            Usuario usuario = usuarioOpt.get();
+            
+            boolean senhaValida = passwordEncoder.matches(loginRequest.senha.trim(), usuario.getSenha());
+
+            if (!senhaValida) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                       .body(new ErrorResponseDTO("Credenciais inválidas"));
+            }
+
+            return ResponseEntity.ok("Login Efetuado com Sucesso!");
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                   .body(new ErrorResponseDTO("Erro interno no servidor"));
         }
-
-        Usuario usuario = usuarioOpt.get();
-        System.out.println("Hash no banco: " + usuario.getSenha());
-        
-        // Verifique se a senha foi codificada
-        boolean senhaValida = passwordEncoder.matches(loginRequest.senha.trim(), usuario.getSenha());
-        System.out.println("Senha válida? " + senhaValida);
-
-        if (!senhaValida) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                   .body(new ErrorResponseDTO("Credenciais inválidas"));
-        }
-
-        String token = _authService.generateToken(usuario);
-        return ResponseEntity.ok(new LoginResponseDTO(token));
-
-    } catch (Exception e) {
-        System.out.println("Erro no login: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-               .body(new ErrorResponseDTO("Erro interno no servidor"));
     }
-}
 
-    /*
-     * A anotação Operation edita a descrição da rota no Swagger
-     */
     @ResponseStatus(code = HttpStatus.CREATED)
     @Operation(summary = "Cadastra um novo usuário no banco de dados", description = "Endpoint para criação de um novo usuário no banco de dados")
     @ApiResponses(value = {
@@ -118,30 +97,17 @@ public class UsuariosController {
     })
     @PostMapping("/cadastrar")
     public ResponseEntity<Object> cadastraUsuario(@RequestBody Usuario usuario) {
-    try {
-        // Codifique a senha antes de salvar
-        usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
-        Usuario _usuario = _usuarioService.cadastrarUsuario(usuario);
-        return ResponseEntity.status(HttpStatus.CREATED).body(_usuario);
-    } catch(EmptyFieldException | InvalidFieldException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
-    } catch(Exception e) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
-    }
+        try {
+            usuario.setSenha(passwordEncoder.encode(usuario.getSenha()));
+            Usuario _usuario = _usuarioService.cadastrarUsuario(usuario);
+            return ResponseEntity.status(HttpStatus.CREATED).body(_usuario);
+        } catch(EmptyFieldException | InvalidFieldException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
+        } catch(Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
     }
 
-    /*
-     * A anotação ApiResponses cria um array de valores de respostas para o endpoint
-     * 
-     * A anotação ApiResponse define a resposta da api, contendo o código e uma descrição, além de um exemplo de valor que pode ser retornado
-     *
-     * O ResponseEntity é responsável por criar o objeto de resposta que será enviado para o front-end
-     * Neste caso, o tipo dele (entre <>) é apenas um Object, significando que ele pode retornar qualquer tipo de objeto, porém é possível definir tipos específicos como Usuario
-     * 
-     * A anotação PathVariable "diz" para a função que o parâmetro virá do caminho da URL (http://localhost:8080/usuario/2, onde o 2 é o que será passado para o PathVariable)
-     * 
-     * O GetMapping define que esta função será acessada através do método Get na rota com o parâmetro mutável "/{id}"
-    */
     @ResponseStatus(code = HttpStatus.OK)
     @Operation(summary = "Busca um usuário no banco de dados", description = "Endpoint para buscar de um usuário no banco de dados com base no ID")
     @ApiResponses(value = {
@@ -168,7 +134,6 @@ public class UsuariosController {
         }
     }
 
-    // O RequestBody "diz" para a função que um dos parâmetros dela virá do corpo da requisição
     @ResponseStatus(code = HttpStatus.OK)
     @Operation(summary = "Edita um usuário no banco de dados", description = "Endpoint para edição de um usuário no banco de dados com base no ID")
     @ApiResponses(value = {

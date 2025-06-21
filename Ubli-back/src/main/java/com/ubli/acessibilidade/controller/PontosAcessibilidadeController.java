@@ -60,24 +60,23 @@ public class PontosAcessibilidadeController {
             schema = @Schema(implementation = ErrorResponseDTO.class)
         )),
     })
-    @PostMapping(value = "/adicionar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(
+        value = "/adicionar")
     public ResponseEntity<Object> cadastraPontoAcessibilidade(
-        @RequestPart("ponto_acessibilidade") PontoAcessibilidadeDTO pontoAcessibilidadeDto,
-        @RequestPart("fotos_local") List<MultipartFile> fotos
+        @org.springframework.web.bind.annotation.RequestBody PontoAcessibilidadeDTO pontoAcessibilidadeDto
     ) {
         try {
-            // Está correto em retornar um PontoAcessibilidade ao invés do DTO pois ele irá retornar o ponto específico
+            // Validação dos campos obrigatórios
+            if (pontoAcessibilidadeDto.getDescricao() == null || pontoAcessibilidadeDto.getDescricao().trim().isEmpty()) {
+                throw new EmptyFieldException("A descrição do ponto de acessibilidade é obrigatória");
+            }
+            
             PontoAcessibilidade _pontoAcessibilidade = _pontoAcessibilidadeService.cadastraPontoAcessibilidade(pontoAcessibilidadeDto);
-            // Retorna o id do objeto salvo;
-            UUID idPonto = _pontoAcessibilidade.getId();
-
-            // Utiliza o id e a lista recebida na requisição para adicionar as fotos
-            _fotoLocalService.adicionaFotoLocal(fotos, idPonto);
             return ResponseEntity.status(HttpStatus.CREATED).body(_pontoAcessibilidade);
         } catch(EmptyFieldException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 
@@ -97,14 +96,13 @@ public class PontosAcessibilidadeController {
     })
     @GetMapping("/buscar")
     public ResponseEntity<Object> buscaPontosAcessibilidade() {
-        // A função não irá retornar o campo "fotosLocal", apenas os dados presentes no DTO
         try {
             List<PontoAcessibilidadeDTO> pontosAcessibilidade = _pontoAcessibilidadeService.buscaPontosAcessibilidade();
             return ResponseEntity.status(HttpStatus.OK).body(pontosAcessibilidade);
         } catch(DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 
@@ -130,7 +128,7 @@ public class PontosAcessibilidadeController {
         } catch(DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 
@@ -148,16 +146,10 @@ public class PontosAcessibilidadeController {
             schema = @Schema(implementation = ErrorResponseDTO.class)
         )),
     })
-    @GetMapping("/buscar/{id}")
+    @GetMapping("/buscar-id/{id}")
     public ResponseEntity<Object> buscaPontoAcessibilidadeId(@PathVariable UUID id) {
-        /* 
-         * A função está correta, já que retorna um registro do banco e adiciona um campo efêmero "fotosLocal" e adiciona as fotos encontradas à ele
-         * Isto evita um campo desnecessário no banco (já que na própria definição do model, este campo é "Transient") e em retornos/requisições
-        */
         try {
-            // Busca os pontos pelo id informado
             PontoAcessibilidade pontoAcessibilidade = _pontoAcessibilidadeService.buscaPontoAcessibilidadeId(id);
-            // Busca as fotos pelo id do ponto informado e seta o campo "fotosLocal"
             List<String> fotos = _fotoLocalService.buscaFotosLocal(id);
             pontoAcessibilidade.setFotosLocal(fotos);
             
@@ -165,7 +157,7 @@ public class PontosAcessibilidadeController {
         } catch(DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 
@@ -190,9 +182,14 @@ public class PontosAcessibilidadeController {
         )),
     })
     @PutMapping("/{id}/editar")
-    public ResponseEntity<Object> editaPontoAcessibilidade(@PathVariable UUID id, @RequestBody PontoAcessibilidadeDTO pontoAcessibilidadeDto) {
+    public ResponseEntity<Object> editaPontoAcessibilidade(@PathVariable UUID id, 
+            @org.springframework.web.bind.annotation.RequestBody PontoAcessibilidadeDTO pontoAcessibilidadeDto) {
         try {
-            // Função correta, edita os pontos necessários e retorna um model
+            // Validação dos campos obrigatórios
+            if (pontoAcessibilidadeDto.getDescricao() == null || pontoAcessibilidadeDto.getDescricao().trim().isEmpty()) {
+                throw new EmptyFieldException("A descrição do ponto de acessibilidade é obrigatória");
+            }
+            
             PontoAcessibilidade _pontoAcessibilidade = _pontoAcessibilidadeService.editPontoAcessibilidade(pontoAcessibilidadeDto, id);
             return ResponseEntity.status(HttpStatus.OK).body(_pontoAcessibilidade);
         } catch(DataNotFoundException e) {
@@ -200,7 +197,7 @@ public class PontosAcessibilidadeController {
         } catch(EmptyFieldException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 
@@ -218,14 +215,13 @@ public class PontosAcessibilidadeController {
     @DeleteMapping("/{id}/excluir")
     public ResponseEntity<Object> excluiPontoAcessibilidade(@PathVariable("id") UUID idPontoAcessibilidade) {
         try {
-            // Função correta (checar apenas o service), exclui o ponto e o diretório do mesmo
             _pontoAcessibilidadeService.excluiPontoAcessibilidadeId(idPontoAcessibilidade);
             _fotoLocalService.excluiFotoLocalIdPonto(idPontoAcessibilidade);
             return ResponseEntity.noContent().build();
         } catch(DataNotFoundException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponseDTO(e.getMessage()));
         } catch(Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponseDTO(ErrorMessages.ERRO_INTERNO_SERVIDOR.getMensagem()));
         }
     }
 }

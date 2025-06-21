@@ -14,7 +14,11 @@ CREATE TABLE ponto_acessibilidade (
     latitude DOUBLE NOT NULL,
     longitude DOUBLE NOT NULL,
     id_usuario VARCHAR(36) NOT NULL,
-    FOREIGN KEY (id_usuario) REFERENCES usuario(id) ON DELETE CASCADE
+    FOREIGN KEY (id_usuario) REFERENCES usuario(id) ON DELETE CASCADE,
+    tipo_estabelecimento INTEGER NOT NULL,
+    endereco VARCHAR(100) NOT NULL,
+    acessibilidades VARCHAR(150),
+    nome VARCHAR(100) NOT NULL
 );
 
 
