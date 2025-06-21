@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Ubli - Acessibilidade urbana
  */
-import type { PontoAcessibilidadeDTO } from './pontoAcessibilidadeDTO';
+import type { PontoAcessibilidadeDTO } from "./pontoAcessibilidadeDTO";
 
 export type CadastraPontoAcessibilidadeBody = {
   ponto_acessibilidade: PontoAcessibilidadeDTO;
