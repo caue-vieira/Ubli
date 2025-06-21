@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ubli.acessibilidade.dto.LoginRequestDTO;
-import com.ubli.acessibilidade.dto.LoginResponseDTO;
 import com.ubli.acessibilidade.errors.ErrorResponseDTO;
 import com.ubli.acessibilidade.errors.exceptions.DataNotFoundException;
 import com.ubli.acessibilidade.errors.exceptions.EmptyFieldException;
@@ -27,7 +26,6 @@ import com.ubli.acessibilidade.errors.messages.ErrorMessages;
 import com.ubli.acessibilidade.interfaces.repository.IUsuarioRepository;
 import com.ubli.acessibilidade.interfaces.service.IUsuarioService;
 import com.ubli.acessibilidade.model.Usuario;
-import com.ubli.acessibilidade.service.AuthService;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -51,8 +49,6 @@ public class UsuariosController {
     private IUsuarioRepository _iUsuarioRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
-    @Autowired
-    private AuthService _authService;
 
     @ResponseStatus(code = HttpStatus.OK)
     @Operation(summary = "Faz login do usuário")
@@ -89,8 +85,7 @@ public class UsuariosController {
                    .body(new ErrorResponseDTO("Credenciais inválidas"));
         }
 
-        String token = _authService.generateToken(usuario);
-        return ResponseEntity.ok(new LoginResponseDTO(token));
+        return ResponseEntity.ok("Usuário logado com sucesso");
 
     } catch (Exception e) {
         System.out.println("Erro no login: " + e.getMessage());

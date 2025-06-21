@@ -11,6 +11,40 @@ import SidebarForm from "@/components/SidebarForm.tsx";
 import addButtonIcon from "@/images/add-button.png";
 import { AnimatePresence, motion } from "framer-motion";
 import ImageCarousel from "@/components/ImageCarousel";
+import { getUbliAcessibilidadeUrbana } from "@/api/generated/ubliAcessibilidadeUrbana";
+
+const mockSelectedPlace: PlaceLocation = {
+  lat: -23.55052,
+  lng: -46.633308,
+  placeId: "mock-place-id-123",
+};
+
+const mockPlaceDetails: PlaceDetails = {
+  name: "Praça da Liberdade",
+  formatted_address: "Praça da Liberdade, São Paulo - SP, Brasil",
+  types: ["point_of_interest", "park"],
+};
+
+const mockAccessibilityData: Record<string, AccessibilityData> = {
+  "mock-place-id-123": {
+    id: "teste_id",
+    descricao: "A praça possui rampas de acesso e sinalização tátil.",
+    classificacao_local: 1,
+    latitude: -23.55052,
+    longitude: -46.633308,
+    fotos_local: [
+      "https://placekitten.com/300/200",
+      "https://placekitten.com/301/200",
+    ],
+    endereco: "Praça da Liberdade, São Paulo - SP",
+    acessibilidades: [
+      "Rampa",
+      "Sinalização tátil",
+      "Banheiro acessível",
+    ],
+    tipo_estabelecimento: 5,
+  },
+};
 
 const center = {
     lat: -3.745,
@@ -31,16 +65,8 @@ type PlaceDetails = {
     address_components?: any[];
 };
 
-// Novo tipo para uma avaliação individual
-export type PlaceReview = {
-    id: string; // ID único da avaliação
-    author: string; // Nome do autor
-    rating: number; // Avaliação de 1 a 5
-    comment: string; // Comentário em texto
-    date: string; // Data da avaliação em formato ISO
-};
-
 export type AccessibilityData = {
+    id: string;
     descricao: string | null;
     classificacao_local: number;
     latitude: number;
@@ -59,6 +85,16 @@ function GoMap() {
         language: "pt-BR",
         region: "BR",
     });
+
+    useEffect(() => {
+        const { buscaPontosAcessibilidade } = getUbliAcessibilidadeUrbana();
+        buscaPontosAcessibilidade().then((response) => {
+            console.log(response);
+        }).catch(error => {console.log(error)});
+        setSelectedPlace(mockSelectedPlace);
+        setPlaceDetails(mockPlaceDetails);
+        setAccessibilityData(mockAccessibilityData);
+    }, []);
 
     // É atualizado sempre que o usuário editar ou adicionar um novo ponto
     const [novoPontoTrigger, setNovoPontoTrigger] =

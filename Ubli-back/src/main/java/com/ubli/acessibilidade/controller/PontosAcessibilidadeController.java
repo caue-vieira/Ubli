@@ -60,19 +60,20 @@ public class PontosAcessibilidadeController {
             schema = @Schema(implementation = ErrorResponseDTO.class)
         )),
     })
-    @PostMapping(value = "/adicionar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/adicionar")
     public ResponseEntity<Object> cadastraPontoAcessibilidade(
-        @RequestPart("ponto_acessibilidade") PontoAcessibilidadeDTO pontoAcessibilidadeDto,
-        @RequestPart("fotos_local") List<MultipartFile> fotos
+        @RequestBody PontoAcessibilidadeDTO pontoAcessibilidadeDto
+        // @RequestPart("fotos_local") List<MultipartFile> fotos
     ) {
         try {
+            System.out.println(pontoAcessibilidadeDto);
             // Está correto em retornar um PontoAcessibilidade ao invés do DTO pois ele irá retornar o ponto específico
             PontoAcessibilidade _pontoAcessibilidade = _pontoAcessibilidadeService.cadastraPontoAcessibilidade(pontoAcessibilidadeDto);
             // Retorna o id do objeto salvo;
-            UUID idPonto = _pontoAcessibilidade.getId();
+            // UUID idPonto = _pontoAcessibilidade.getId();
 
             // Utiliza o id e a lista recebida na requisição para adicionar as fotos
-            _fotoLocalService.adicionaFotoLocal(fotos, idPonto);
+            // _fotoLocalService.adicionaFotoLocal(fotos, idPonto);
             return ResponseEntity.status(HttpStatus.CREATED).body(_pontoAcessibilidade);
         } catch(EmptyFieldException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponseDTO(e.getMessage()));

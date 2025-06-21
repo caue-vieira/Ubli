@@ -12,6 +12,8 @@ import { motion } from "framer-motion";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { SelectValue } from "@radix-ui/react-select";
+import { getUbliAcessibilidadeUrbana } from "@/api/generated/ubliAcessibilidadeUrbana";
 
 // As interfaces permanecem as mesmas com adições do novo código
 interface SidebarFormProps {
@@ -79,75 +81,35 @@ function SidebarForm({
             fotos_local: [],
         },
     });
-    // Estado inicial padrão e vazio para o formulário
-    const getInitialFormData = () => ({
-        descricao: "",
-        latidude: "",
-        longitude: "",
-        classificacao_local: 0,
-        id_usuario: "",
-        acessibilidades: {
-            rampa: false,
-            elevador: false,
-            banheiro_acessivel: false,
-            sinalizacao_tatil: false,
-            vaga_especial: false,
-            piso_tatil: false,
-            acesso_cadeirantes: false,
-            audio_descricao: false,
-            braille: false,
-        },
-    });
 
     // Dados do formulário. Utilizar para preencher os campos do formulário caso seja uma edição
     // const [formData, setFormData] = useState(getInitialFormData());
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-    // Verificar useEffect e remodelá-lo para preencher os campos do formulário
     useEffect(() => {
-        // Remover os logs após concluído
-        // Adicionei logs para depuração. Verifique o console do navegador (F12).
-        console.log("[SidebarForm] useEffect executado.");
-        console.log("[SidebarForm] Dados existentes recebidos:", existingData);
-
-        if (placeDetails) {
-            // Começa com um estado base a partir dos detalhes do local
-            let formState = {
-                ...getInitialFormData(),
-            };
-
-            // Se houver dados salvos, eles SOBRESCREVEM o estado base.
-            if (existingData) {
-                formState = {
-                    ...formState,
-                    classificacao_local: existingData.classificacao_local,
-                    descricao:
-                        existingData.descricao == null
-                            ? ""
-                            : existingData.descricao,
-                };
-                // Define as imagens existentes para preview
-                setImagePreviews(existingData.fotos_local || []);
-            } else {
-                // Garante que, se não houver dados, as imagens de preview sejam limpas
-                setImagePreviews([]);
-            }
-
-            console.log(
-                "[SidebarForm] Estado final definido no formulário:",
-                formState
-            );
+        if (existingData) {
+            pontoForm.reset({
+            descricao: existingData.descricao ?? "",
+            endereco: existingData.endereco,
+            acessibilidades: existingData.acessibilidades ?? [],
+            tipo_estabelecimento: String(existingData.tipo_estabelecimento),
+            fotos_local: existingData.fotos_local ?? [],
+            });
+            setImagePreviews(existingData.fotos_local);
+            setIsDataLoaded(true);
         }
-    }, [placeDetails, existingData]); // Dependências corretas
+    }, [existingData, pontoForm]);
 
     function onPontoSave(values: z.infer<typeof pontoFormSchema>) {
+        const { cadastraPontoAcessibilidade, editaPontoAcessibilidade } = getUbliAcessibilidadeUrbana();
         const novoPonto = {
             descricao: values.descricao === "" ? null : values.descricao,
             endereco:
                 placeDetails === null
                     ? values.endereco
                     : placeDetails.formatted_address,
-            acessibilidades: values.acessibilidades,
+            acessibilidades: JSON.stringify(values.acessibilidades),
             tipo_estabelecimento: Number(values.tipo_estabelecimento),
             fotos_local: values.fotos_local,
             classificacao_local:
@@ -161,6 +123,11 @@ function SidebarForm({
             // id_usuario será adicionado no backend através do token JWT
         };
         onSave(novoPonto);
+        if(existingData !== undefined) {
+            editaPontoAcessibilidade(existingData?.id, novoPonto)
+        } else {
+            cadastraPontoAcessibilidade(novoPonto);
+        }
         console.log(novoPonto);
     }
 
@@ -170,7 +137,7 @@ function SidebarForm({
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="p-6 h-full flex flex-col bg-white shadow-lg"
+            className="px-6 h-full flex flex-col bg-white shadow-lg"
         >
             <div className="flex justify-between items-center mb-6">
                 <h2 className="text-2xl font-bold text-gray-800">
@@ -238,13 +205,12 @@ function SidebarForm({
                                     </FormLabel>
                                     <FormControl>
                                         <Select
-                                            onValueChange={field.onChange}
+                                            key={isDataLoaded ? "select-loaded" : "select-loading"}
                                             value={field.value}
+                                            onValueChange={field.onChange}
                                         >
                                             <SelectTrigger className="w-full">
-                                                {tiposEstabelecimento[
-                                                    Number(field.value)
-                                                ] ?? "Selecione"}
+                                                <SelectValue placeholder="Selecione" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {tiposEstabelecimento.map(
